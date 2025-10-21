@@ -1,0 +1,267 @@
+@model StudentManagementSystem.ViewModels.StudentListViewModel
+
+@{
+    ViewData["Title"] = "Students";
+    Layout = "~/Views/Shared/_ModernLayout.cshtml";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Students Management</h2>
+    <a asp-action="Create" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Add New Student
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form asp-action="Index" method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <input asp-for="SearchTerm" class="form-control" placeholder="Name, Registration No., CNIC..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Trade</label>
+                @Html.DropDownListFor(m => m.TradeFilter, Model.Trades, "All Trades", new { @class = "form-select" })
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Session</label>
+                @Html.DropDownListFor(m => m.SessionFilter, Model.Sessions, "All Sessions", new { @class = "form-select" })
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                @Html.DropDownListFor(m => m.StatusFilter, Model.StatusOptions, new { @class = "form-select" })
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="fas fa-refresh"></i> Reset
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Results -->
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <span>Students List (@Model.TotalRecords total)</span>
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-download"></i> Export
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        @if (Model.Students.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Photo</th>
+                            <th>Registration No.</th>
+                            <th>Name</th>
+                            <th>Trade</th>
+                            <th>Session</th>
+                            <th>Batch</th>
+                            <th>Status</th>
+                            <th>Fee Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var student in Model.Students)
+                        {
+                            <tr>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(student.PhotoPath))
+                                    {
+                                        <img src="@student.PhotoPath" alt="Photo" class="rounded-circle" 
+                                             style="width: 40px; height: 40px; object-fit: cover;" />
+                                    }
+                                    else
+                                    {
+                                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" 
+                                             style="width: 40px; height: 40px; color: white;">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                    }
+                                </td>
+                                <td>
+                                    <strong>@student.RegistrationNumber</strong>
+                                </td>
+                                <td>
+                                    <div>
+                                        <strong>@student.FullName</strong>
+                                        @if (!string.IsNullOrEmpty(student.FatherName))
+                                        {
+                                            <br><small class="text-muted">S/O @student.FatherName</small>
+                                        }
+                                    </div>
+                                </td>
+                                <td>@student.TradeName</td>
+                                <td>@student.SessionName</td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(student.BatchName) && student.BatchName != "Not Assigned")
+                                    {
+                                        <span class="badge bg-info">@student.BatchName</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning">Not Assigned</span>
+                                    }
+                                </td>
+                                <td>
+                                    @switch (student.Status)
+                                    {
+                                        case "Active":
+                                            <span class="badge bg-success">Active</span>
+                                            break;
+                                        case "Graduated":
+                                            <span class="badge bg-primary">Graduated</span>
+                                            break;
+                                        case "Dropped":
+                                            <span class="badge bg-danger">Dropped</span>
+                                            break;
+                                        case "Suspended":
+                                            <span class="badge bg-warning">Suspended</span>
+                                            break;
+                                        default:
+                                            <span class="badge bg-secondary">@student.Status</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    @if (student.RemainingAmount <= 0)
+                                    {
+                                        <span class="badge bg-success">Paid</span>
+                                    }
+                                    else if (student.PaidAmount > 0)
+                                    {
+                                        <span class="badge bg-warning">Partial</span>
+                                        <br><small>₨@student.RemainingAmount.ToString("N0") due</small>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">Unpaid</span>
+                                        <br><small>₨@student.TotalFee.ToString("N0") total</small>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a asp-action="Details" asp-route-id="@student.Id" 
+                                           class="btn btn-outline-primary btn-sm" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a asp-action="Edit" asp-route-id="@student.Id" 
+                                           class="btn btn-outline-warning btn-sm" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@student.Id" 
+                                           class="btn btn-outline-danger btn-sm" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            @if (Model.TotalPages > 1)
+            {
+                <nav aria-label="Students pagination">
+                    <ul class="pagination justify-content-center">
+                        @if (Model.PageNumber > 1)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" asp-action="Index" 
+                                   asp-route-page="@(Model.PageNumber - 1)"
+                                   asp-route-searchTerm="@Model.SearchTerm"
+                                   asp-route-tradeFilter="@Model.TradeFilter"
+                                   asp-route-sessionFilter="@Model.SessionFilter"
+                                   asp-route-statusFilter="@Model.StatusFilter">
+                                    Previous
+                                </a>
+                            </li>
+                        }
+
+                        @for (int i = Math.Max(1, Model.PageNumber - 2); i <= Math.Min(Model.TotalPages, Model.PageNumber + 2); i++)
+                        {
+                            <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                                <a class="page-link" asp-action="Index" 
+                                   asp-route-page="@i"
+                                   asp-route-searchTerm="@Model.SearchTerm"
+                                   asp-route-tradeFilter="@Model.TradeFilter"
+                                   asp-route-sessionFilter="@Model.SessionFilter"
+                                   asp-route-statusFilter="@Model.StatusFilter">
+                                    @i
+                                </a>
+                            </li>
+                        }
+
+                        @if (Model.PageNumber < Model.TotalPages)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" asp-action="Index" 
+                                   asp-route-page="@(Model.PageNumber + 1)"
+                                   asp-route-searchTerm="@Model.SearchTerm"
+                                   asp-route-tradeFilter="@Model.TradeFilter"
+                                   asp-route-sessionFilter="@Model.SessionFilter"
+                                   asp-route-statusFilter="@Model.StatusFilter">
+                                    Next
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            }
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No students found</h5>
+                <p class="text-muted">Try adjusting your search criteria or add a new student.</p>
+                <a asp-action="Create" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add First Student
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Auto-submit form when filters change (optional)
+        $('.form-select').on('change', function() {
+            $(this).closest('form').submit();
+        });
+    </script>
+}

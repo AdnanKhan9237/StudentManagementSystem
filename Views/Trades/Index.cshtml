@@ -1,0 +1,225 @@
+@model StudentManagementSystem.ViewModels.TradeListViewModel
+
+@{
+    ViewData["Title"] = "Trades Management";
+    Layout = "~/Views/Shared/_ModernLayout.cshtml";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Trades Management</h2>
+    <a asp-action="Create" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Add New Trade
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form asp-action="Index" method="get" class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Search</label>
+                <input asp-for="SearchTerm" class="form-control" placeholder="Trade name, code..." />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select asp-for="ActiveFilter" class="form-select">
+                    <option value="">All Status</option>
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="fas fa-refresh"></i> Reset
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Results -->
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <span>Trades List (@Model.TotalRecords total)</span>
+        </div>
+    </div>
+    <div class="card-body">
+        @if (Model.Trades.Any())
+        {
+            <div class="row">
+                @foreach (var trade in Model.Trades)
+                {
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100 @(trade.IsActive ? "border-success" : "border-warning")">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <strong>@trade.Code</strong>
+                                @if (trade.IsActive)
+                                {
+                                    <span class="badge bg-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning">Inactive</span>
+                                }
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">@trade.NameEnglish</h5>
+                                @if (!string.IsNullOrEmpty(trade.NameUrdu))
+                                {
+                                    <h6 class="card-subtitle mb-2 text-muted">@trade.NameUrdu</h6>
+                                }
+                                @if (!string.IsNullOrEmpty(trade.DescriptionEnglish))
+                                {
+                                    <p class="card-text">@trade.DescriptionEnglish</p>
+                                }
+                                
+                                <div class="row text-center">
+                                    <div class="col-4">
+                                        <small class="text-muted">Duration</small>
+                                        <div><strong>@trade.Duration</strong> months</div>
+                                    </div>
+                                    <div class="col-4">
+                                        <small class="text-muted">Fee</small>
+                                        <div><strong>₨@trade.TotalFee.ToString("N0")</strong></div>
+                                    </div>
+                                    <div class="col-4">
+                                        <small class="text-muted">Students</small>
+                                        <div><strong>@trade.CurrentStudents/@trade.MaxStudents</strong></div>
+                                    </div>
+                                </div>
+                                
+                                @if (trade.CurrentStudents > 0)
+                                {
+                                    <div class="mt-3">
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar @(trade.AvailableSlots <= 5 ? "bg-warning" : "bg-success")" 
+                                                 style="width: @(trade.MaxStudents > 0 ? (double)trade.CurrentStudents / trade.MaxStudents * 100 : 0)%"></div>
+                                        </div>
+                                        <small class="text-muted">@trade.AvailableSlots slots available</small>
+                                    </div>
+                                }
+                            </div>
+                            <div class="card-footer">
+                                <div class="d-flex justify-content-between">
+                                    <small class="text-muted">
+                                        Created: @trade.CreatedDate.ToString("MMM dd, yyyy")
+                                    </small>
+                                </div>
+                                <div class="btn-group w-100 mt-2" role="group">
+                                    <a asp-action="Details" asp-route-id="@trade.Id" 
+                                       class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-eye"></i> Details
+                                    </a>
+                                    <a asp-action="Edit" asp-route-id="@trade.Id" 
+                                       class="btn btn-outline-warning btn-sm">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    @if (trade.CurrentStudents == 0)
+                                    {
+                                        <a asp-action="Delete" asp-route-id="@trade.Id" 
+                                           class="btn btn-outline-danger btn-sm">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-outline-secondary btn-sm" disabled title="Cannot delete - has enrolled students">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Pagination -->
+            @if (Model.TotalPages > 1)
+            {
+                <nav aria-label="Trades pagination">
+                    <ul class="pagination justify-content-center">
+                        @if (Model.PageNumber > 1)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" asp-action="Index" 
+                                   asp-route-page="@(Model.PageNumber - 1)"
+                                   asp-route-searchTerm="@Model.SearchTerm"
+                                   asp-route-activeFilter="@Model.ActiveFilter">
+                                    Previous
+                                </a>
+                            </li>
+                        }
+
+                        @for (int i = Math.Max(1, Model.PageNumber - 2); i <= Math.Min(Model.TotalPages, Model.PageNumber + 2); i++)
+                        {
+                            <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                                <a class="page-link" asp-action="Index" 
+                                   asp-route-page="@i"
+                                   asp-route-searchTerm="@Model.SearchTerm"
+                                   asp-route-activeFilter="@Model.ActiveFilter">
+                                    @i
+                                </a>
+                            </li>
+                        }
+
+                        @if (Model.PageNumber < Model.TotalPages)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" asp-action="Index" 
+                                   asp-route-page="@(Model.PageNumber + 1)"
+                                   asp-route-searchTerm="@Model.SearchTerm"
+                                   asp-route-activeFilter="@Model.ActiveFilter">
+                                    Next
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            }
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="fas fa-tools fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No trades found</h5>
+                <p class="text-muted">Try adjusting your search criteria or add a new trade.</p>
+                <a asp-action="Create" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add First Trade
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Auto-submit form when filters change (optional)
+        $('.form-select').on('change', function() {
+            $(this).closest('form').submit();
+        });
+    </script>
+}

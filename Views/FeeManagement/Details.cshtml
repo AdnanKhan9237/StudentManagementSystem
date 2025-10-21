@@ -1,0 +1,224 @@
+@model StudentFeeDetailsViewModel
+
+@{
+    ViewData["Title"] = $"Fee Details - {Model.StudentName}";
+    Layout = "~/Views/Shared/_ModernLayout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-header">
+                <div class="page-block">
+                    <div class="row align-items-center">
+                        <div class="col-md-12">
+                            <div class="page-header-title">
+                                <h5 class="m-b-10">Student Fee Details</h5>
+                            </div>
+                            <ul class="breadcrumb">
+                                <li class="breadcrumb-item">
+                                    <a asp-action="Index" asp-controller="Home">
+                                        <i class="feather icon-home"></i>
+                                    </a>
+                                </li>
+                                <li class="breadcrumb-item">
+                                    <a asp-action="Index" asp-controller="FeeManagement">Fee Management</a>
+                                </li>
+                                <li class="breadcrumb-item">Student Details</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Message -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="feather icon-check-circle"></i>
+                    @TempData["SuccessMessage"]
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="row">
+        <!-- Student Information Card -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Student Information</h5>
+                    <div class="float-right">
+                        @if (Model.RemainingAmount > 0)
+                        {
+                            <a asp-action="CollectFee" asp-route-id="@Model.StudentId" class="btn btn-success btn-sm">
+                                <i class="feather icon-dollar-sign"></i> Collect Fee
+                            </a>
+                        }
+                        <a asp-action="Index" class="btn btn-secondary btn-sm">
+                            <i class="feather icon-arrow-left"></i> Back to List
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Registration No.:</strong></td>
+                                    <td>@Model.RegistrationNumber</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Student Name:</strong></td>
+                                    <td>@Model.StudentName</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Trade:</strong></td>
+                                    <td>@Model.TradeName</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Session:</strong></td>
+                                    <td>@Model.SessionName</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Total Fee:</strong></td>
+                                    <td class="text-primary">₨@Model.TotalFee.ToString("N0")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Paid Amount:</strong></td>
+                                    <td class="text-success">₨@Model.PaidAmount.ToString("N0")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Remaining Amount:</strong></td>
+                                    <td class="text-danger">₨@Model.RemainingAmount.ToString("N0")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Payment Status:</strong></td>
+                                    <td>
+                                        @if (Model.PaymentStatus == "Paid")
+                                        {
+                                            <span class="badge badge-success">Paid</span>
+                                        }
+                                        else if (Model.PaymentStatus == "Partial")
+                                        {
+                                            <span class="badge badge-warning">Partial Payment</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-danger">Unpaid</span>
+                                        }
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fee Progress Card -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Payment Progress</h5>
+                </div>
+                <div class="card-body text-center">
+                    @{
+                        var progressPercentage = Model.TotalFee > 0 ? (Model.PaidAmount / Model.TotalFee) * 100 : 0;
+                    }
+                    <div class="progress mb-3" style="height: 20px;">
+                        <div class="progress-bar @(progressPercentage >= 100 ? "bg-success" : progressPercentage > 0 ? "bg-warning" : "bg-danger")" 
+                             role="progressbar" style="width: @progressPercentage%" 
+                             aria-valuenow="@progressPercentage" aria-valuemin="0" aria-valuemax="100">
+                            @progressPercentage.ToString("F1")%
+                        </div>
+                    </div>
+                    <p class="text-muted small">
+                        @progressPercentage.ToString("F1")% of total fee paid
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment History -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Payment History</h5>
+                    <div class="float-right">
+                        <span class="badge badge-info">@Model.PaymentHistory.Count Payments</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (Model.PaymentHistory.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Receipt No.</th>
+                                        <th>Amount</th>
+                                        <th>Payment Date</th>
+                                        <th>Payment Method</th>
+                                        <th>Processed By</th>
+                                        <th>Remarks</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (int i = 0; i < Model.PaymentHistory.Count; i++)
+                                    {
+                                        var payment = Model.PaymentHistory[i];
+                                        <tr>
+                                            <td>@(i + 1)</td>
+                                            <td><code>@payment.ReceiptNumber</code></td>
+                                            <td class="text-success font-weight-bold">₨@payment.Amount.ToString("N0")</td>
+                                            <td>@payment.PaymentDate.ToString("dd/MM/yyyy")</td>
+                                            <td>@payment.PaymentMethod</td>
+                                            <td>@payment.CreatedBy</td>
+                                            <td>@(string.IsNullOrEmpty(payment.Remarks) ? "-" : payment.Remarks)</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot class="bg-light">
+                                    <tr>
+                                        <th colspan="2">Total Paid</th>
+                                        <th class="text-success">₨@Model.PaymentHistory.Sum(p => p.Amount).ToString("N0")</th>
+                                        <th colspan="4"></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info text-center">
+                            <i class="feather icon-info"></i>
+                            No payment history found for this student.
+                            @if (Model.RemainingAmount > 0)
+                            {
+                                <br><br>
+                                <a asp-action="CollectFee" asp-route-id="@Model.StudentId" class="btn btn-success">
+                                    <i class="feather icon-dollar-sign"></i> Make First Payment
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

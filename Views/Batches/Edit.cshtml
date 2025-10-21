@@ -1,0 +1,138 @@
+@model StudentManagementSystem.ViewModels.BatchViewModel
+@{
+    ViewData["Title"] = "Edit Batch";
+    Layout = "~/Views/Shared/_ModernLayout.cshtml";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">@ViewData["Title"]</h5>
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-arrow-left"></i> Back to List
+                </a>
+            </div>
+            <div class="card-body">
+                <form asp-action="Edit" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="Id" />
+                    
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="BatchCode" class="form-label">Batch Code *</label>
+                                <input asp-for="BatchCode" class="form-control" placeholder="e.g., AUT-2024-01" />
+                                <span asp-validation-for="BatchCode" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="BatchName" class="form-label">Batch Name *</label>
+                                <input asp-for="BatchName" class="form-control" placeholder="e.g., Automotive Morning Batch" />
+                                <span asp-validation-for="BatchName" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="SessionId" class="form-label">Session *</label>
+                                <select asp-for="SessionId" class="form-select" asp-items="ViewBag.Sessions">
+                                    <option value="">Select Session</option>
+                                </select>
+                                <span asp-validation-for="SessionId" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="TradeId" class="form-label">Trade *</label>
+                                <select asp-for="TradeId" class="form-select" asp-items="ViewBag.Trades">
+                                    <option value="">Select Trade</option>
+                                </select>
+                                <span asp-validation-for="TradeId" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="RoomId" class="form-label">Room</label>
+                                <select asp-for="RoomId" class="form-select" asp-items="ViewBag.Rooms">
+                                    <option value="">Select Room (Optional)</option>
+                                </select>
+                                <span asp-validation-for="RoomId" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="TimingId" class="form-label">Timing</label>
+                                <select asp-for="TimingId" class="form-select" asp-items="ViewBag.Timings">
+                                    <option value="">Select Timing (Optional)</option>
+                                </select>
+                                <span asp-validation-for="TimingId" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="Status" class="form-label">Status *</label>
+                                <select asp-for="Status" class="form-select" asp-items="ViewBag.Statuses">
+                                    <option value="">Select Status</option>
+                                </select>
+                                <span asp-validation-for="Status" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="StartDate" class="form-label">Start Date *</label>
+                                <input asp-for="StartDate" type="date" class="form-control" />
+                                <span asp-validation-for="StartDate" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="EndDate" class="form-label">End Date *</label>
+                                <input asp-for="EndDate" type="date" class="form-control" />
+                                <span asp-validation-for="EndDate" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="MaxStudents" class="form-label">Maximum Students *</label>
+                                <input asp-for="MaxStudents" type="number" class="form-control" placeholder="Maximum number of students" />
+                                <span asp-validation-for="MaxStudents" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Description" class="form-label">Description</label>
+                        <textarea asp-for="Description" class="form-control" rows="3" placeholder="Enter batch description..."></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Update Batch
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

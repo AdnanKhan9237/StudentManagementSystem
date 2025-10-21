@@ -1,0 +1,150 @@
+@model StudentManagementSystem.ViewModels.TimingViewModel
+@{
+    ViewData["Title"] = "Edit Timing";
+    Layout = "~/Views/Shared/_ModernLayout.cshtml";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">@ViewData["Title"]</h5>
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-arrow-left"></i> Back to List
+                </a>
+            </div>
+            <div class="card-body">
+                <form asp-action="Edit" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="Id" />
+                    
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="Name" class="form-label">Timing Name *</label>
+                                <input asp-for="Name" class="form-control" placeholder="e.g., Morning Class" />
+                                <span asp-validation-for="Name" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="Shift" class="form-label">Shift *</label>
+                                <select asp-for="Shift" class="form-select" asp-items="ViewBag.Shifts">
+                                    <option value="">Select Shift</option>
+                                </select>
+                                <span asp-validation-for="Shift" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="StartTime" class="form-label">Start Time *</label>
+                                <input asp-for="StartTime" type="time" class="form-control" />
+                                <span asp-validation-for="StartTime" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="EndTime" class="form-label">End Time *</label>
+                                <input asp-for="EndTime" type="time" class="form-control" />
+                                <span asp-validation-for="EndTime" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="Type" class="form-label">Type</label>
+                                <select asp-for="Type" class="form-select" asp-items="ViewBag.TimingTypes">
+                                    <option value="">Select Type</option>
+                                </select>
+                                <span asp-validation-for="Type" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Duration (Auto-calculated)</label>
+                                <div class="form-control-plaintext" id="duration-display">
+                                    <span class="text-muted">Select start and end times</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input asp-for="IsActive" class="form-check-input" type="checkbox" />
+                                    <label asp-for="IsActive" class="form-check-label">
+                                        Active Timing
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Description" class="form-label">Description</label>
+                        <textarea asp-for="Description" class="form-control" rows="3" placeholder="Enter timing description..."></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-save"></i> Update Timing
+                        </button>
+                        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-info">
+                            <i class="fas fa-eye"></i> View Details
+                        </a>
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        $(document).ready(function() {
+            function calculateDuration() {
+                var startTime = $('#StartTime').val();
+                var endTime = $('#EndTime').val();
+                
+                if (startTime && endTime) {
+                    var start = new Date('2000-01-01 ' + startTime);
+                    var end = new Date('2000-01-01 ' + endTime);
+                    
+                    if (end > start) {
+                        var diff = end - start;
+                        var hours = Math.floor(diff / (1000 * 60 * 60));
+                        var minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                        
+                        var durationText = '';
+                        if (hours > 0) {
+                            durationText = hours + 'h ' + minutes + 'm';
+                        } else {
+                            durationText = minutes + 'm';
+                        }
+                        
+                        $('#duration-display').html('<span class="badge bg-info">' + durationText + '</span>');
+                    } else {
+                        $('#duration-display').html('<span class="text-danger">End time must be after start time</span>');
+                    }
+                } else {
+                    $('#duration-display').html('<span class="text-muted">Select start and end times</span>');
+                }
+            }
+            
+            $('#StartTime, #EndTime').change(calculateDuration);
+        });
+    </script>
+}

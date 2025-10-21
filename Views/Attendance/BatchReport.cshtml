@@ -1,0 +1,381 @@
+@model BatchAttendanceReportViewModel
+
+@{
+    ViewData["Title"] = $"Attendance Report - {Model.BatchName}";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-header">
+                <div class="page-block">
+                    <div class="row align-items-center">
+                        <div class="col-md-12">
+                            <div class="page-header-title">
+                                <h5 class="m-b-10">Batch Attendance Report</h5>
+                            </div>
+                            <ul class="breadcrumb">
+                                <li class="breadcrumb-item">
+                                    <a asp-action="Index" asp-controller="Home">
+                                        <i class="feather icon-home"></i>
+                                    </a>
+                                </li>
+                                <li class="breadcrumb-item">
+                                    <a asp-action="Index" asp-controller="Attendance">Attendance</a>
+                                </li>
+                                <li class="breadcrumb-item">Batch Report</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Batch Information -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h4 class="text-white">@Model.BatchName</h4>
+                    <p class="text-white-50 mb-1">
+                        <i class="fas fa-code"></i> @Model.BatchCode | 
+                        <i class="fas fa-tools"></i> @Model.TradeName
+                    </p>
+                    <p class="text-white-50 mb-0">
+                        <i class="fas fa-calendar-alt"></i> @Model.SessionName | 
+                        <i class="fas fa-users"></i> @Model.TotalStudentsInBatch Students
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h4 class="text-white">@Model.OverallAttendancePercentage.ToString("F1")%</h4>
+                    <p class="text-white-50 mb-0">Overall Attendance Rate</p>
+                    <small class="text-white-50">
+                        @Model.FromDate.ToString("dd MMM") - @Model.ToDate.ToString("dd MMM yyyy")
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Date Range Filter -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" asp-action="BatchReport" class="form-inline">
+                        <input type="hidden" name="batchId" value="@Model.BatchId" />
+                        <div class="form-group mr-3">
+                            <label for="fromDate" class="mr-2">From Date:</label>
+                            <input type="date" id="fromDate" name="fromDate" 
+                                   value="@Model.FromDate.ToString("yyyy-MM-dd")" 
+                                   class="form-control" />
+                        </div>
+                        <div class="form-group mr-3">
+                            <label for="toDate" class="mr-2">To Date:</label>
+                            <input type="date" id="toDate" name="toDate" 
+                                   value="@Model.ToDate.ToString("yyyy-MM-dd")" 
+                                   class="form-control" />
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter"></i> Apply Filter
+                        </button>
+                        <div class="ml-2">
+                            <div class="btn-group" role="group">
+                                <button type="submit" name="fromDate" value="@DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd")" 
+                                        name="toDate" value="@DateTime.Today.ToString("yyyy-MM-dd")" 
+                                        class="btn btn-outline-secondary btn-sm">Last 7 Days</button>
+                                <button type="submit" name="fromDate" value="@DateTime.Today.AddDays(-30).ToString("yyyy-MM-dd")" 
+                                        name="toDate" value="@DateTime.Today.ToString("yyyy-MM-dd")" 
+                                        class="btn btn-outline-secondary btn-sm">Last 30 Days</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student-wise Attendance Summary -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Student-wise Attendance Summary</h5>
+                    <div class="float-right">
+                        <span class="badge badge-info">@Model.StudentAttendance.Count Students</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (Model.StudentAttendance.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="studentAttendanceTable">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Registration No.</th>
+                                        <th>Student Name</th>
+                                        <th>Total Days</th>
+                                        <th>Present</th>
+                                        <th>Absent</th>
+                                        <th>Late</th>
+                                        <th>Excused</th>
+                                        <th>Attendance %</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (int i = 0; i < Model.StudentAttendance.Count; i++)
+                                    {
+                                        var student = Model.StudentAttendance[i];
+                                        <tr class="@GetAttendanceRowClass(student.AttendancePercentage)">
+                                            <td>@(i + 1)</td>
+                                            <td><strong>@student.RegistrationNumber</strong></td>
+                                            <td>@student.StudentName</td>
+                                            <td>@student.TotalDays</td>
+                                            <td><span class="badge badge-success">@student.PresentDays</span></td>
+                                            <td><span class="badge badge-danger">@student.AbsentDays</span></td>
+                                            <td><span class="badge badge-warning">@student.LateDays</span></td>
+                                            <td><span class="badge badge-info">@student.ExcusedDays</span></td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="progress flex-grow-1 mr-2" style="height: 8px; width: 60px;">
+                                                        <div class="progress-bar @GetProgressBarClass(student.AttendancePercentage)" 
+                                                             style="width: @student.AttendancePercentage%"></div>
+                                                    </div>
+                                                    <strong class="@GetPercentageClass(student.AttendancePercentage)">
+                                                        @student.AttendancePercentage.ToString("F1")%
+                                                    </strong>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge @GetAttendanceStatusBadge(student.AttendancePercentage)">
+                                                    @GetAttendanceStatus(student.AttendancePercentage)
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <a asp-action="StudentReport" asp-route-studentId="@student.StudentId"
+                                                   asp-route-fromDate="@Model.FromDate.ToString("yyyy-MM-dd")"
+                                                   asp-route-toDate="@Model.ToDate.ToString("yyyy-MM-dd")"
+                                                   class="btn btn-outline-primary btn-sm" title="View Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info text-center">
+                            <i class="fas fa-info-circle fa-2x mb-3"></i>
+                            <h5>No Attendance Data</h5>
+                            <p class="mb-0">No attendance records found for the selected date range.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Daily Attendance Trend -->
+    @if (Model.DailySummary.Any())
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Daily Attendance Trend</h5>
+                        <div class="float-right">
+                            <span class="badge badge-secondary">@Model.DailySummary.Count Days</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Day</th>
+                                        <th>Total</th>
+                                        <th>Present</th>
+                                        <th>Absent</th>
+                                        <th>Late</th>
+                                        <th>Excused</th>
+                                        <th>Attendance Rate</th>
+                                        <th>Trend</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var day in Model.DailySummary.OrderByDescending(d => d.Date))
+                                    {
+                                        <tr>
+                                            <td><strong>@day.Date.ToString("dd/MM/yyyy")</strong></td>
+                                            <td>@day.Date.ToString("ddd")</td>
+                                            <td>@day.TotalStudents</td>
+                                            <td><span class="text-success">@day.PresentCount</span></td>
+                                            <td><span class="text-danger">@day.AbsentCount</span></td>
+                                            <td><span class="text-warning">@day.LateCount</span></td>
+                                            <td><span class="text-info">@day.ExcusedCount</span></td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="progress flex-grow-1 mr-2" style="height: 6px; width: 80px;">
+                                                        <div class="progress-bar @GetProgressBarClass(day.AttendancePercentage)" 
+                                                             style="width: @day.AttendancePercentage%"></div>
+                                                    </div>
+                                                    <small class="@GetPercentageClass(day.AttendancePercentage)">
+                                                        @day.AttendancePercentage.ToString("F1")%
+                                                    </small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="progress" style="height: 20px; width: 100px;">
+                                                    <div class="progress-bar bg-success" style="width: @(day.TotalStudents > 0 ? (day.PresentCount * 100.0 / day.TotalStudents) : 0)%" title="Present"></div>
+                                                    <div class="progress-bar bg-warning" style="width: @(day.TotalStudents > 0 ? (day.LateCount * 100.0 / day.TotalStudents) : 0)%" title="Late"></div>
+                                                    <div class="progress-bar bg-info" style="width: @(day.TotalStudents > 0 ? (day.ExcusedCount * 100.0 / day.TotalStudents) : 0)%" title="Excused"></div>
+                                                    <div class="progress-bar bg-danger" style="width: @(day.TotalStudents > 0 ? (day.AbsentCount * 100.0 / day.TotalStudents) : 0)%" title="Absent"></div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Quick Actions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6>Quick Actions</h6>
+                    <div class="btn-group" role="group">
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Batches
+                        </a>
+                        <a asp-action="TakeAttendance" asp-route-batchId="@Model.BatchId" class="btn btn-success">
+                            <i class="fas fa-check"></i> Take Today's Attendance
+                        </a>
+                        <a asp-action="ViewAttendance" asp-route-batchId="@Model.BatchId" class="btn btn-info">
+                            <i class="fas fa-eye"></i> View Today's Attendance
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    private string GetAttendanceRowClass(double percentage)
+    {
+        return percentage switch
+        {
+            >= 85 => "table-success-light",
+            >= 70 => "table-warning-light",
+            _ => "table-danger-light"
+        };
+    }
+
+    private string GetProgressBarClass(double percentage)
+    {
+        return percentage switch
+        {
+            >= 80 => "bg-success",
+            >= 60 => "bg-warning",
+            _ => "bg-danger"
+        };
+    }
+
+    private string GetPercentageClass(double percentage)
+    {
+        return percentage switch
+        {
+            >= 80 => "text-success",
+            >= 60 => "text-warning",
+            _ => "text-danger"
+        };
+    }
+
+    private string GetAttendanceStatus(double percentage)
+    {
+        return percentage switch
+        {
+            >= 85 => "Excellent",
+            >= 75 => "Good",
+            >= 60 => "Average",
+            _ => "Poor"
+        };
+    }
+
+    private string GetAttendanceStatusBadge(double percentage)
+    {
+        return percentage switch
+        {
+            >= 85 => "badge-success",
+            >= 75 => "badge-primary",
+            >= 60 => "badge-warning",
+            _ => "badge-danger"
+        };
+    }
+}
+
+@section Styles {
+    <style>
+        .table-success-light {
+            background-color: #d4edda !important;
+        }
+        
+        .table-warning-light {
+            background-color: #fff3cd !important;
+        }
+        
+        .table-danger-light {
+            background-color: #f8d7da !important;
+        }
+        
+        .progress {
+            border-radius: 10px;
+        }
+        
+        .progress-bar {
+            border-radius: 10px;
+        }
+        
+        #studentAttendanceTable th {
+            white-space: nowrap;
+        }
+        
+        .btn-group .btn {
+            margin-right: 0;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize DataTable for better sorting and filtering
+            $('#studentAttendanceTable').DataTable({
+                "pageLength": 25,
+                "order": [[8, "desc"]], // Sort by attendance percentage desc
+                "columnDefs": [
+                    {"orderable": false, "targets": [10]} // Disable sorting for action column
+                ]
+            });
+        });
+    </script>
+}

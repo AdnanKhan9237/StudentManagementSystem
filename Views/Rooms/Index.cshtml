@@ -1,0 +1,196 @@
+@model StudentManagementSystem.ViewModels.RoomListViewModel
+@{
+    ViewData["Title"] = "Rooms Management";
+    Layout = "~/Views/Shared/_ModernLayout.cshtml";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>@ViewData["Title"]</h2>
+    <a asp-action="Create" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Add New Room
+    </a>
+</div>
+
+<!-- Search and Filter -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form asp-action="Index" method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <input type="text" name="searchTerm" value="@Model.SearchTerm" class="form-control" placeholder="Search by room number, name, or building..." />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Room Type</label>
+                <select name="typeFilter" class="form-select">
+                    <option value="">All Types</option>
+                    @foreach (var type in Model.RoomTypes)
+                    {
+                        <option value="@type" selected="@(type == Model.TypeFilter)">@type</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Page Size</label>
+                <select name="pageSize" class="form-select">
+                    <option value="15" selected="@(Model.PageSize == 15)">15</option>
+                    <option value="25" selected="@(Model.PageSize == 25)">25</option>
+                    <option value="50" selected="@(Model.PageSize == 50)">50</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i> Clear
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Results -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Rooms List (@Model.TotalRecords records)</h6>
+        <div>
+            <small class="text-muted">Page @Model.PageNumber of @Math.Ceiling((double)Model.TotalRecords / Model.PageSize)</small>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        @if (Model.Rooms.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Room Info</th>
+                            <th>Capacity</th>
+                            <th>Type</th>
+                            <th>Location</th>
+                            <th>Equipment</th>
+                            <th>Batches</th>
+                            <th>Created</th>
+                            <th width="200">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var room in Model.Rooms)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@room.RoomNumber</strong><br>
+                                    <small class="text-muted">@room.RoomName</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">@room.Capacity</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">@room.RoomType</span>
+                                </td>
+                                <td>
+                                    <strong>@room.Building</strong><br>
+                                    <small class="text-muted">Floor @room.Floor</small>
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        @if (room.HasProjector)
+                                        {
+                                            <i class="fas fa-video text-success" title="Projector"></i>
+                                        }
+                                        @if (room.HasComputers)
+                                        {
+                                            <i class="fas fa-desktop text-primary" title="Computers"></i>
+                                        }
+                                        @if (room.HasAirConditioning)
+                                        {
+                                            <i class="fas fa-snowflake text-info" title="Air Conditioning"></i>
+                                        }
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (room.CurrentBatches > 0)
+                                    {
+                                        <span class="badge bg-success">@room.CurrentBatches</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">0</span>
+                                    }
+                                </td>
+                                <td>
+                                    <small>
+                                        @room.CreatedDate.ToString("MMM dd, yyyy")<br>
+                                        <span class="text-muted">by @room.CreatedBy</span>
+                                    </small>
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a asp-action="Details" asp-route-id="@room.Id" class="btn btn-sm btn-outline-info" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a asp-action="Edit" asp-route-id="@room.Id" class="btn btn-sm btn-outline-warning" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@room.Id" class="btn btn-sm btn-outline-danger" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            @if (Model.TotalRecords > Model.PageSize)
+            {
+                <div class="card-footer">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
+                            @{
+                                var totalPages = (int)Math.Ceiling((double)Model.TotalRecords / Model.PageSize);
+                                var startPage = Math.Max(1, Model.PageNumber - 2);
+                                var endPage = Math.Min(totalPages, Model.PageNumber + 2);
+                            }
+
+                            @if (Model.PageNumber > 1)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="Index" asp-route-page="@(Model.PageNumber - 1)" asp-route-searchTerm="@Model.SearchTerm" asp-route-typeFilter="@Model.TypeFilter">Previous</a>
+                                </li>
+                            }
+
+                            @for (int i = startPage; i <= endPage; i++)
+                            {
+                                <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                                    <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-searchTerm="@Model.SearchTerm" asp-route-typeFilter="@Model.TypeFilter">@i</a>
+                                </li>
+                            }
+
+                            @if (Model.PageNumber < totalPages)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="Index" asp-route-page="@(Model.PageNumber + 1)" asp-route-searchTerm="@Model.SearchTerm" asp-route-typeFilter="@Model.TypeFilter">Next</a>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="fas fa-door-open fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No rooms found</h5>
+                <p class="text-muted">Start by creating your first room.</p>
+                <a asp-action="Create" class="btn btn-primary">Create Room</a>
+            </div>
+        }
+    </div>
+</div>

@@ -1,0 +1,345 @@
+@model FeeReportsViewModel
+
+@{
+    ViewData["Title"] = "Fee Reports & Analytics";
+    Layout = "~/Views/Shared/_ModernLayout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-header">
+                <div class="page-block">
+                    <div class="row align-items-center">
+                        <div class="col-md-12">
+                            <div class="page-header-title">
+                                <h5 class="m-b-10">Fee Reports & Analytics</h5>
+                            </div>
+                            <ul class="breadcrumb">
+                                <li class="breadcrumb-item">
+                                    <a asp-action="Index" asp-controller="Home">
+                                        <i class="feather icon-home"></i>
+                                    </a>
+                                </li>
+                                <li class="breadcrumb-item">
+                                    <a asp-action="Index" asp-controller="FeeManagement">Fee Management</a>
+                                </li>
+                                <li class="breadcrumb-item">Reports</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-8">
+                            <h4 class="text-c-yellow">@Model.TotalStudents</h4>
+                            <h6 class="text-muted m-b-0">Total Students</h6>
+                        </div>
+                        <div class="col-4 text-right">
+                            <i class="feather icon-users f-28"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-8">
+                            <h4 class="text-c-blue">₨@Model.TotalFeeAmount.ToString("N0")</h4>
+                            <h6 class="text-muted m-b-0">Total Fee Amount</h6>
+                        </div>
+                        <div class="col-4 text-right">
+                            <i class="feather icon-credit-card f-28"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-8">
+                            <h4 class="text-c-green">₨@Model.TotalCollected.ToString("N0")</h4>
+                            <h6 class="text-muted m-b-0">Amount Collected</h6>
+                        </div>
+                        <div class="col-4 text-right">
+                            <i class="feather icon-check-circle f-28"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-8">
+                            <h4 class="text-c-red">₨@Model.TotalPending.ToString("N0")</h4>
+                            <h6 class="text-muted m-b-0">Pending Amount</h6>
+                        </div>
+                        <div class="col-4 text-right">
+                            <i class="feather icon-clock f-28"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Collection Rate Progress -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Fee Collection Rate</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <h2 class="@(Model.CollectionRate >= 80 ? "text-success" : Model.CollectionRate >= 50 ? "text-warning" : "text-danger")">
+                            @Model.CollectionRate.ToString("F1")%
+                        </h2>
+                        <p class="text-muted">Overall Collection Rate</p>
+                    </div>
+                    <div class="progress mb-3" style="height: 20px;">
+                        <div class="progress-bar @(Model.CollectionRate >= 80 ? "bg-success" : Model.CollectionRate >= 50 ? "bg-warning" : "bg-danger")" 
+                             role="progressbar" style="width: @Model.CollectionRate%" 
+                             aria-valuenow="@Model.CollectionRate" aria-valuemin="0" aria-valuemax="100">
+                            @Model.CollectionRate.ToString("F1")%
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <small class="text-muted">
+                            ₨@Model.TotalCollected.ToString("N0") collected out of ₨@Model.TotalFeeAmount.ToString("N0")
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Status Distribution -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Payment Status Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="d-inline-block">
+                                <h5 class="text-success">@Model.PaidStudents</h5>
+                                <p class="text-muted mb-1">Paid</p>
+                                <div class="progress progress-xs">
+                                    @{
+                                        var paidPercentage = Model.TotalStudents > 0 ? (Model.PaidStudents * 100.0 / Model.TotalStudents) : 0;
+                                    }
+                                    <div class="progress-bar bg-success" style="width: @paidPercentage%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="d-inline-block">
+                                <h5 class="text-warning">@Model.PartialStudents</h5>
+                                <p class="text-muted mb-1">Partial</p>
+                                <div class="progress progress-xs">
+                                    @{
+                                        var partialPercentage = Model.TotalStudents > 0 ? (Model.PartialStudents * 100.0 / Model.TotalStudents) : 0;
+                                    }
+                                    <div class="progress-bar bg-warning" style="width: @partialPercentage%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="d-inline-block">
+                                <h5 class="text-danger">@Model.UnpaidStudents</h5>
+                                <p class="text-muted mb-1">Unpaid</p>
+                                <div class="progress progress-xs">
+                                    @{
+                                        var unpaidPercentage = Model.TotalStudents > 0 ? (Model.UnpaidStudents * 100.0 / Model.TotalStudents) : 0;
+                                    }
+                                    <div class="progress-bar bg-danger" style="width: @unpaidPercentage%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Trade-wise Fee Collection -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Trade-wise Fee Collection</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.TradeWiseData.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Trade</th>
+                                        <th>Students</th>
+                                        <th>Total Fee</th>
+                                        <th>Collected</th>
+                                        <th>Pending</th>
+                                        <th>Collection Rate</th>
+                                        <th>Progress</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var trade in Model.TradeWiseData.OrderByDescending(t => t.CollectionRate))
+                                    {
+                                        <tr>
+                                            <td class="font-weight-bold">@trade.TradeName</td>
+                                            <td>@trade.StudentCount</td>
+                                            <td>₨@trade.TotalFee.ToString("N0")</td>
+                                            <td class="text-success">₨@trade.CollectedAmount.ToString("N0")</td>
+                                            <td class="text-danger">₨@trade.PendingAmount.ToString("N0")</td>
+                                            <td>
+                                                <span class="badge @(trade.CollectionRate >= 80 ? "badge-success" : trade.CollectionRate >= 50 ? "badge-warning" : "badge-danger")">
+                                                    @trade.CollectionRate.ToString("F1")%
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="progress" style="height: 6px; width: 80px;">
+                                                    <div class="progress-bar @(trade.CollectionRate >= 80 ? "bg-success" : trade.CollectionRate >= 50 ? "bg-warning" : "bg-danger")" 
+                                                         role="progressbar" style="width: @trade.CollectionRate%"></div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info text-center">
+                            <i class="feather icon-info"></i>
+                            No trade data available.
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Payments -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Recent Payments</h5>
+                    <div class="float-right">
+                        <span class="badge badge-light">Last 10</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (Model.RecentPayments.Any())
+                    {
+                        <div class="activity-feed">
+                            @foreach (var payment in Model.RecentPayments)
+                            {
+                                <div class="feed-item d-flex">
+                                    <div class="feed-item-icon">
+                                        <i class="feather icon-dollar-sign text-success"></i>
+                                    </div>
+                                    <div class="feed-item-content">
+                                        <div class="text-sm">
+                                            <strong>@payment.StudentName</strong> 
+                                            <small class="text-muted">(@payment.RegistrationNumber)</small>
+                                        </div>
+                                        <div class="text-xs text-muted">
+                                            ₨@payment.Amount.ToString("N0") via @payment.PaymentMethod
+                                        </div>
+                                        <div class="text-xs text-muted">
+                                            @payment.PaymentDate.ToString("dd MMM yyyy") by @payment.CreatedBy
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info text-center">
+                            <i class="feather icon-info"></i>
+                            <br>No recent payments found.
+                        </div>
+                    }
+                </div>
+                <div class="card-footer text-center">
+                    <a asp-action="Index" class="btn btn-outline-primary btn-sm">
+                        <i class="feather icon-eye"></i> View All Payments
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="mb-3">Quick Actions</h5>
+                    <a asp-action="Index" class="btn btn-primary mr-2">
+                        <i class="feather icon-list"></i> View All Students
+                    </a>
+                    <a asp-action="Index" asp-route-statusFilter="unpaid" class="btn btn-danger mr-2">
+                        <i class="feather icon-alert-circle"></i> Unpaid Students (@Model.UnpaidStudents)
+                    </a>
+                    <a asp-action="Index" asp-route-statusFilter="partial" class="btn btn-warning mr-2">
+                        <i class="feather icon-clock"></i> Partial Payments (@Model.PartialStudents)
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .activity-feed .feed-item {
+            border-left: 2px solid #e9ecef;
+            margin-bottom: 1rem;
+            padding-left: 1rem;
+            position: relative;
+        }
+        
+        .activity-feed .feed-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .activity-feed .feed-item-icon {
+            position: absolute;
+            left: -0.6rem;
+            top: 0;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 50%;
+            width: 1.2rem;
+            height: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+        }
+        
+        .progress-xs {
+            height: 4px;
+        }
+    </style>
+}

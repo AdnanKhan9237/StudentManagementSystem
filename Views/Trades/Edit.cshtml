@@ -1,0 +1,145 @@
+@model TradeViewModel
+
+@{
+    ViewData["Title"] = "Edit Trade";
+    Layout = "~/Views/Shared/_ModernLayout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-header">
+                <div class="page-block">
+                    <div class="row align-items-center">
+                        <div class="col-md-12">
+                            <div class="page-header-title">
+                                <h5 class="m-b-10">Edit Trade</h5>
+                            </div>
+                            <ul class="breadcrumb">
+                                <li class="breadcrumb-item">
+                                    <a asp-action="Index" asp-controller="Home">
+                                        <i class="feather icon-home"></i>
+                                    </a>
+                                </li>
+                                <li class="breadcrumb-item">
+                                    <a asp-action="Index" asp-controller="Trades">Trades</a>
+                                </li>
+                                <li class="breadcrumb-item">Edit</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Edit Trade Information</h5>
+                    <div class="float-right">
+                        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-info btn-sm">
+                            <i class="fas fa-eye"></i> View Details
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Edit" method="post">
+                        <input type="hidden" asp-for="Id" />
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="NameEnglish" class="form-label required">Trade Name (English)</label>
+                                    <input asp-for="NameEnglish" class="form-control" placeholder="Enter trade name in English" />
+                                    <span asp-validation-for="NameEnglish" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="NameUrdu" class="form-label">Trade Name (Urdu)</label>
+                                    <input asp-for="NameUrdu" class="form-control" placeholder="Enter trade name in Urdu" />
+                                    <span asp-validation-for="NameUrdu" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="Code" class="form-label required">Trade Code</label>
+                                    <input asp-for="Code" class="form-control" placeholder="Enter unique trade code" />
+                                    <span asp-validation-for="Code" class="text-danger"></span>
+                                    <small class="form-text text-muted">Unique identifier for the trade</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="Duration" class="form-label required">Duration (Months)</label>
+                                    <input asp-for="Duration" type="number" min="1" max="60" class="form-control" placeholder="Duration in months" />
+                                    <span asp-validation-for="Duration" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="TotalFee" class="form-label required">Total Fee (₨)</label>
+                                    <input asp-for="TotalFee" type="number" min="0" step="0.01" class="form-control" placeholder="Enter total fee amount" />
+                                    <span asp-validation-for="TotalFee" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="MaxStudents" class="form-label required">Maximum Students</label>
+                                    <input asp-for="MaxStudents" type="number" min="1" max="1000" class="form-control" placeholder="Maximum number of students" />
+                                    <span asp-validation-for="MaxStudents" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="DescriptionEnglish" class="form-label">Description (English)</label>
+                            <textarea asp-for="DescriptionEnglish" class="form-control" rows="4" placeholder="Enter trade description in English"></textarea>
+                            <span asp-validation-for="DescriptionEnglish" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="DescriptionUrdu" class="form-label">Description (Urdu)</label>
+                            <textarea asp-for="DescriptionUrdu" class="form-control" rows="4" placeholder="Enter trade description in Urdu"></textarea>
+                            <span asp-validation-for="DescriptionUrdu" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input asp-for="IsActive" class="form-check-input" type="checkbox" />
+                                <label asp-for="IsActive" class="form-check-label">
+                                    Active Trade
+                                </label>
+                            </div>
+                            <small class="form-text text-muted">Inactive trades won't be available for new enrollments</small>
+                        </div>
+
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Update Trade
+                            </button>
+                            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-info ml-2">
+                                <i class="fas fa-eye"></i> View Details
+                            </a>
+                            <a asp-action="Index" class="btn btn-secondary ml-2">
+                                <i class="fas fa-arrow-left"></i> Back to List
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

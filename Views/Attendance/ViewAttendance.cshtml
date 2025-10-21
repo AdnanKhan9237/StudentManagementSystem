@@ -1,0 +1,400 @@
+@model ViewAttendanceViewModel
+
+@{
+    ViewData["Title"] = $"View Attendance - {Model.BatchName}";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-header">
+                <div class="page-block">
+                    <div class="row align-items-center">
+                        <div class="col-md-12">
+                            <div class="page-header-title">
+                                <h5 class="m-b-10">View Attendance</h5>
+                            </div>
+                            <ul class="breadcrumb">
+                                <li class="breadcrumb-item">
+                                    <a asp-action="Index" asp-controller="Home">
+                                        <i class="feather icon-home"></i>
+                                    </a>
+                                </li>
+                                <li class="breadcrumb-item">
+                                    <a asp-action="Index" asp-controller="Attendance">Attendance</a>
+                                </li>
+                                <li class="breadcrumb-item">View Attendance</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Message -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle"></i>
+                    @TempData["SuccessMessage"]
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Batch and Date Information -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h4 class="text-white">@Model.BatchName</h4>
+                    <p class="text-white-50 mb-1">
+                        <i class="fas fa-code"></i> @Model.BatchCode | 
+                        <i class="fas fa-tools"></i> @Model.TradeName
+                    </p>
+                    <p class="text-white-50 mb-0">
+                        <i class="fas fa-calendar-alt"></i> @Model.SessionName
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h4 class="text-white">@Model.AttendanceDate.ToString("dddd")</h4>
+                    <h5 class="text-white">@Model.AttendanceDate.ToString("dd MMMM yyyy")</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Summary Statistics -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-8">
+                            <h4 class="text-success">@Model.PresentCount</h4>
+                            <h6 class="text-muted m-b-0">Present</h6>
+                        </div>
+                        <div class="col-4 text-right">
+                            <i class="fas fa-check-circle f-28 text-success"></i>
+                        </div>
+                    </div>
+                    <div class="progress mt-2" style="height: 4px;">
+                        <div class="progress-bar bg-success" style="width: @(Model.TotalStudents > 0 ? (Model.PresentCount * 100.0 / Model.TotalStudents) : 0)%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-8">
+                            <h4 class="text-danger">@Model.AbsentCount</h4>
+                            <h6 class="text-muted m-b-0">Absent</h6>
+                        </div>
+                        <div class="col-4 text-right">
+                            <i class="fas fa-times-circle f-28 text-danger"></i>
+                        </div>
+                    </div>
+                    <div class="progress mt-2" style="height: 4px;">
+                        <div class="progress-bar bg-danger" style="width: @(Model.TotalStudents > 0 ? (Model.AbsentCount * 100.0 / Model.TotalStudents) : 0)%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-8">
+                            <h4 class="text-warning">@Model.LateCount</h4>
+                            <h6 class="text-muted m-b-0">Late</h6>
+                        </div>
+                        <div class="col-4 text-right">
+                            <i class="fas fa-clock f-28 text-warning"></i>
+                        </div>
+                    </div>
+                    <div class="progress mt-2" style="height: 4px;">
+                        <div class="progress-bar bg-warning" style="width: @(Model.TotalStudents > 0 ? (Model.LateCount * 100.0 / Model.TotalStudents) : 0)%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-8">
+                            <h4 class="text-info">@Model.ExcusedCount</h4>
+                            <h6 class="text-muted m-b-0">Excused</h6>
+                        </div>
+                        <div class="col-4 text-right">
+                            <i class="fas fa-user-check f-28 text-info"></i>
+                        </div>
+                    </div>
+                    <div class="progress mt-2" style="height: 4px;">
+                        <div class="progress-bar bg-info" style="width: @(Model.TotalStudents > 0 ? (Model.ExcusedCount * 100.0 / Model.TotalStudents) : 0)%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overall Attendance Rate -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5>Overall Attendance Rate</h5>
+                            <p class="text-muted mb-0">
+                                @Model.AttendancePercentage.ToString("F1")% attendance rate for @Model.AttendanceDate.ToString("dd MMMM yyyy")
+                            </p>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="progress" style="height: 25px;">
+                                <div class="progress-bar @(Model.AttendancePercentage >= 80 ? "bg-success" : Model.AttendancePercentage >= 60 ? "bg-warning" : "bg-danger")" 
+                                     role="progressbar" style="width: @Model.AttendancePercentage%" 
+                                     aria-valuenow="@Model.AttendancePercentage" aria-valuemin="0" aria-valuemax="100">
+                                    @Model.AttendancePercentage.ToString("F1")%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Records -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Attendance Records</h5>
+                    <div class="float-right">
+                        <div class="btn-group" role="group">
+                            <a asp-action="TakeAttendance" asp-route-batchId="@Model.BatchId" 
+                               asp-route-date="@Model.AttendanceDate.ToString("yyyy-MM-dd")" 
+                               class="btn btn-success btn-sm">
+                                <i class="fas fa-edit"></i> Edit Attendance
+                            </a>
+                            <a asp-action="BatchReport" asp-route-batchId="@Model.BatchId" 
+                               class="btn btn-info btn-sm">
+                                <i class="fas fa-chart-bar"></i> Reports
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (Model.AttendanceRecords.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Registration No.</th>
+                                        <th>Student Name</th>
+                                        <th>Status</th>
+                                        <th>Time In</th>
+                                        <th>Time Out</th>
+                                        <th>Remarks</th>
+                                        <th>Marked By</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (int i = 0; i < Model.AttendanceRecords.Count; i++)
+                                    {
+                                        var record = Model.AttendanceRecords[i];
+                                        <tr class="@GetRowClass(record.Status)">
+                                            <td>@(i + 1)</td>
+                                            <td><strong>@record.RegistrationNumber</strong></td>
+                                            <td>@record.StudentName</td>
+                                            <td>
+                                                <span class="badge @GetStatusBadgeClass(record.Status)">
+                                                    <i class="@GetStatusIcon(record.Status)"></i> @record.Status
+                                                </span>
+                                            </td>
+                                            <td>
+                                                @if (record.TimeIn.HasValue)
+                                                {
+                                                    <span class="text-muted">@record.TimeIn.Value.ToString(@"hh\:mm")</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (record.TimeOut.HasValue)
+                                                {
+                                                    <span class="text-muted">@record.TimeOut.Value.ToString(@"hh\:mm")</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(record.Remarks))
+                                                {
+                                                    <span class="text-muted small" title="@record.Remarks">
+                                                        @(record.Remarks.Length > 30 ? record.Remarks.Substring(0, 30) + "..." : record.Remarks)
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    @record.MarkedBy<br>
+                                                    @record.MarkedOn.ToString("HH:mm")
+                                                </small>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-info-circle fa-3x text-muted"></i>
+                            </div>
+                            <h5>No Attendance Recorded</h5>
+                            <p class="mb-3">No attendance has been recorded for this batch on @Model.AttendanceDate.ToString("dd MMMM yyyy").</p>
+                            <a asp-action="TakeAttendance" asp-route-batchId="@Model.BatchId" 
+                               asp-route-date="@Model.AttendanceDate.ToString("yyyy-MM-dd")" 
+                               class="btn btn-success">
+                                <i class="fas fa-check"></i> Take Attendance
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation and Actions -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h6>Navigate to Different Date</h6>
+                    <form method="get" asp-action="ViewAttendance" class="form-inline">
+                        <input type="hidden" name="batchId" value="@Model.BatchId" />
+                        <div class="form-group mr-3">
+                            <label for="dateInput" class="mr-2">Select Date:</label>
+                            <input type="date" id="dateInput" name="date" 
+                                   value="@Model.AttendanceDate.ToString("yyyy-MM-dd")" 
+                                   class="form-control" />
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-calendar"></i> Load Date
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6>Quick Actions</h6>
+                    <a asp-action="Index" class="btn btn-secondary btn-block">
+                        <i class="fas fa-arrow-left"></i> Back to Batches
+                    </a>
+                    <a asp-action="BatchReport" asp-route-batchId="@Model.BatchId" class="btn btn-info btn-block">
+                        <i class="fas fa-chart-line"></i> View Reports
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    private string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Present" => "badge-success",
+            "Absent" => "badge-danger",
+            "Late" => "badge-warning",
+            "Excused" => "badge-info",
+            _ => "badge-secondary"
+        };
+    }
+
+    private string GetStatusIcon(string status)
+    {
+        return status switch
+        {
+            "Present" => "fas fa-check",
+            "Absent" => "fas fa-times",
+            "Late" => "fas fa-clock",
+            "Excused" => "fas fa-user-check",
+            _ => "fas fa-question"
+        };
+    }
+
+    private string GetRowClass(string status)
+    {
+        return status switch
+        {
+            "Present" => "table-success-light",
+            "Absent" => "table-danger-light",
+            "Late" => "table-warning-light",
+            "Excused" => "table-info-light",
+            _ => ""
+        };
+    }
+}
+
+@section Styles {
+    <style>
+        .f-28 {
+            font-size: 28px;
+        }
+        
+        .table-success-light {
+            background-color: #d4edda !important;
+        }
+        
+        .table-danger-light {
+            background-color: #f8d7da !important;
+        }
+        
+        .table-warning-light {
+            background-color: #fff3cd !important;
+        }
+        
+        .table-info-light {
+            background-color: #cce7ff !important;
+        }
+        
+        .progress {
+            border-radius: 10px;
+        }
+        
+        .progress-bar {
+            border-radius: 10px;
+        }
+    </style>
+}

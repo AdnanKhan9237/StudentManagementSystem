@@ -1,0 +1,199 @@
+@model TradeViewModel
+
+@{
+    ViewData["Title"] = "Delete Trade";
+    Layout = "~/Views/Shared/_ModernLayout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-header">
+                <div class="page-block">
+                    <div class="row align-items-center">
+                        <div class="col-md-12">
+                            <div class="page-header-title">
+                                <h5 class="m-b-10">Delete Trade</h5>
+                            </div>
+                            <ul class="breadcrumb">
+                                <li class="breadcrumb-item">
+                                    <a asp-action="Index" asp-controller="Home">
+                                        <i class="feather icon-home"></i>
+                                    </a>
+                                </li>
+                                <li class="breadcrumb-item">
+                                    <a asp-action="Index" asp-controller="Trades">Trades</a>
+                                </li>
+                                <li class="breadcrumb-item">Delete</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Message -->
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    @TempData["ErrorMessage"]
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle"></i> Confirm Delete
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning" role="alert">
+                        <i class="fas fa-warning"></i>
+                        <strong>Warning:</strong> Are you sure you want to delete this trade? This action cannot be undone.
+                    </div>
+
+                    <h6>Trade Information</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Trade Code:</strong></td>
+                                    <td>@Model.Code</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Name (English):</strong></td>
+                                    <td>@Model.NameEnglish</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Name (Urdu):</strong></td>
+                                    <td>@(string.IsNullOrEmpty(Model.NameUrdu) ? "-" : Model.NameUrdu)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Duration:</strong></td>
+                                    <td>@Model.Duration months</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Total Fee:</strong></td>
+                                    <td>₨@Model.TotalFee.ToString("N0")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Maximum Students:</strong></td>
+                                    <td>@Model.MaxStudents</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Current Students:</strong></td>
+                                    <td class="@(Model.CurrentStudents > 0 ? "text-danger font-weight-bold" : "text-muted")">
+                                        @Model.CurrentStudents
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Status:</strong></td>
+                                    <td>
+                                        <span class="badge @(Model.IsActive ? "badge-success" : "badge-secondary")">
+                                            @(Model.IsActive ? "Active" : "Inactive")
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.DescriptionEnglish))
+                    {
+                        <div class="mt-3">
+                            <h6>Description (English)</h6>
+                            <p class="text-muted">@Model.DescriptionEnglish</p>
+                        </div>
+                    }
+
+                    @if (Model.CurrentStudents > 0)
+                    {
+                        <div class="alert alert-danger mt-3" role="alert">
+                            <i class="fas fa-ban"></i>
+                            <strong>Cannot Delete:</strong> This trade has @Model.CurrentStudents enrolled student(s). 
+                            Please move or remove all students before deleting this trade.
+                        </div>
+                        
+                        <div class="form-group">
+                            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-info">
+                                <i class="fas fa-eye"></i> View Details
+                            </a>
+                            <a asp-action="Index" class="btn btn-secondary ml-2">
+                                <i class="fas fa-arrow-left"></i> Back to List
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info mt-3" role="alert">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Safe to Delete:</strong> This trade has no enrolled students and can be safely deleted.
+                        </div>
+
+                        <form asp-action="Delete" method="post">
+                            <input type="hidden" asp-for="Id" />
+                            <div class="form-group">
+                                <button type="submit" class="btn btn-danger" onclick="return confirm('Are you absolutely sure you want to delete this trade? This action cannot be undone.');">
+                                    <i class="fas fa-trash"></i> Yes, Delete Trade
+                                </button>
+                                <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-info ml-2">
+                                    <i class="fas fa-eye"></i> View Details
+                                </a>
+                                <a asp-action="Index" class="btn btn-secondary ml-2">
+                                    <i class="fas fa-arrow-left"></i> Cancel
+                                </a>
+                            </div>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Deletion Impact</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning" role="alert">
+                        <h6><i class="fas fa-exclamation-triangle"></i> What will be affected:</h6>
+                        <ul class="mb-0">
+                            <li>Trade record will be marked as deleted</li>
+                            <li>Will no longer appear in active listings</li>
+                            <li>Historical data will be preserved</li>
+                            @if (Model.CurrentStudents > 0)
+                            {
+                                <li class="text-danger">
+                                    <strong>@Model.CurrentStudents enrolled students will be affected</strong>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                    
+                    @if (Model.CurrentStudents == 0)
+                    {
+                        <div class="alert alert-success" role="alert">
+                            <i class="fas fa-check-circle"></i>
+                            <strong>Safe to proceed:</strong> No students will be affected by this deletion.
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

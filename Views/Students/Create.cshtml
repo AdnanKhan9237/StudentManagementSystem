@@ -1,0 +1,424 @@
+@model StudentManagementSystem.ViewModels.StudentViewModel
+
+@{
+    ViewData["Title"] = "Add New Student";
+    Layout = "~/Views/Shared/_ModernLayout.cshtml";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Add New Student</h2>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to List
+    </a>
+</div>
+
+<form asp-action="Create" method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+    <div class="row">
+        <!-- Basic Information -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-user"></i> Basic Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="FirstName" class="form-label"></label>
+                                <input asp-for="FirstName" class="form-control" required />
+                                <span asp-validation-for="FirstName" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="LastName" class="form-label"></label>
+                                <input asp-for="LastName" class="form-control" required />
+                                <span asp-validation-for="LastName" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="FatherName" class="form-label"></label>
+                                <input asp-for="FatherName" class="form-control" />
+                                <span asp-validation-for="FatherName" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="CNIC" class="form-label"></label>
+                                <input asp-for="CNIC" class="form-control" placeholder="12345-1234567-1" />
+                                <span asp-validation-for="CNIC" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="DateOfBirth" class="form-label"></label>
+                                <input asp-for="DateOfBirth" class="form-control" type="date" required />
+                                <span asp-validation-for="DateOfBirth" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="Gender" class="form-label"></label>
+                                @Html.DropDownListFor(m => m.Gender, Model.GenderOptions, "Select Gender", new { @class = "form-select", required = "required" })
+                                <span asp-validation-for="Gender" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="BloodGroup" class="form-label"></label>
+                                <select asp-for="BloodGroup" class="form-select">
+                                    <option value="">Select Blood Group</option>
+                                    <option value="A+">A+</option>
+                                    <option value="A-">A-</option>
+                                    <option value="B+">B+</option>
+                                    <option value="B-">B-</option>
+                                    <option value="O+">O+</option>
+                                    <option value="O-">O-</option>
+                                    <option value="AB+">AB+</option>
+                                    <option value="AB-">AB-</option>
+                                </select>
+                                <span asp-validation-for="BloodGroup" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-phone"></i> Contact Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="PhoneNumber" class="form-label"></label>
+                                <input asp-for="PhoneNumber" class="form-control" />
+                                <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="Email" class="form-label"></label>
+                                <input asp-for="Email" class="form-control" type="email" />
+                                <span asp-validation-for="Email" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label asp-for="Address" class="form-label"></label>
+                        <textarea asp-for="Address" class="form-control" rows="3"></textarea>
+                        <span asp-validation-for="Address" class="text-danger"></span>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="City" class="form-label"></label>
+                                <input asp-for="City" class="form-control" />
+                                <span asp-validation-for="City" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="Province" class="form-label"></label>
+                                <select asp-for="Province" class="form-select">
+                                    <option value="">Select Province</option>
+                                    <option value="Punjab">Punjab</option>
+                                    <option value="Sindh">Sindh</option>
+                                    <option value="KPK">Khyber Pakhtunkhwa</option>
+                                    <option value="Balochistan">Balochistan</option>
+                                    <option value="Gilgit-Baltistan">Gilgit-Baltistan</option>
+                                    <option value="Azad Kashmir">Azad Kashmir</option>
+                                    <option value="Islamabad">Islamabad Capital Territory</option>
+                                </select>
+                                <span asp-validation-for="Province" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="PostalCode" class="form-label"></label>
+                                <input asp-for="PostalCode" class="form-control" />
+                                <span asp-validation-for="PostalCode" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="EmergencyContactName" class="form-label"></label>
+                                <input asp-for="EmergencyContactName" class="form-control" />
+                                <span asp-validation-for="EmergencyContactName" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="EmergencyContactPhone" class="form-label"></label>
+                                <input asp-for="EmergencyContactPhone" class="form-control" />
+                                <span asp-validation-for="EmergencyContactPhone" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Academic Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-graduation-cap"></i> Academic Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="TradeId" class="form-label"></label>
+                                @Html.DropDownListFor(m => m.TradeId, Model.Trades, "Select Trade", new { @class = "form-select", required = "required", id = "tradeSelect" })
+                                <span asp-validation-for="TradeId" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="SessionId" class="form-label"></label>
+                                @Html.DropDownListFor(m => m.SessionId, Model.Sessions, "Select Session", new { @class = "form-select", required = "required", id = "sessionSelect" })
+                                <span asp-validation-for="SessionId" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="BatchId" class="form-label"></label>
+                                @Html.DropDownListFor(m => m.BatchId, Model.Batches, "Select Batch (Optional)", new { @class = "form-select", id = "batchSelect" })
+                                <span asp-validation-for="BatchId" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="RegistrationNumber" class="form-label"></label>
+                                <div class="input-group">
+                                    <input asp-for="RegistrationNumber" class="form-control" required />
+                                    <button type="button" class="btn btn-outline-secondary" id="generateRegBtn">
+                                        <i class="fas fa-magic"></i> Generate
+                                    </button>
+                                </div>
+                                <span asp-validation-for="RegistrationNumber" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="AdmissionDate" class="form-label"></label>
+                                <input asp-for="AdmissionDate" class="form-control" type="date" required />
+                                <span asp-validation-for="AdmissionDate" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="Status" class="form-label"></label>
+                                @Html.DropDownListFor(m => m.Status, Model.StatusOptions, new { @class = "form-select" })
+                                <span asp-validation-for="Status" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="PreviousMarks" class="form-label"></label>
+                                <input asp-for="PreviousMarks" class="form-control" type="number" step="0.01" min="0" max="100" />
+                                <span asp-validation-for="PreviousMarks" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="PreviousQualification" class="form-label"></label>
+                                <select asp-for="PreviousQualification" class="form-select">
+                                    <option value="">Select Qualification</option>
+                                    <option value="Matric">Matric</option>
+                                    <option value="Intermediate">Intermediate</option>
+                                    <option value="Bachelor">Bachelor</option>
+                                    <option value="Master">Master</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                <span asp-validation-for="PreviousQualification" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="PreviousInstitute" class="form-label"></label>
+                                <input asp-for="PreviousInstitute" class="form-control" />
+                                <span asp-validation-for="PreviousInstitute" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fee Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-money-bill"></i> Fee Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="TotalFee" class="form-label"></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₨</span>
+                                    <input asp-for="TotalFee" class="form-control" type="number" step="0.01" min="0" required />
+                                </div>
+                                <span asp-validation-for="TotalFee" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="PaidAmount" class="form-label"></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₨</span>
+                                    <input asp-for="PaidAmount" class="form-control" type="number" step="0.01" min="0" />
+                                </div>
+                                <span asp-validation-for="PaidAmount" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Remaining Amount</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₨</span>
+                                    <input id="remainingAmount" class="form-control" type="text" readonly style="background-color: #f8f9fa;" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Additional Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="Remarks" class="form-label"></label>
+                        <textarea asp-for="Remarks" class="form-control" rows="4" placeholder="Any additional notes or remarks..."></textarea>
+                        <span asp-validation-for="Remarks" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Photo Upload -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-camera"></i> Student Photo</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <div id="photoPreview" class="mb-3">
+                            <div class="border rounded d-flex align-items-center justify-content-center" style="height: 200px; background-color: #f8f9fa;">
+                                <div class="text-muted">
+                                    <i class="fas fa-user fa-4x mb-2"></i>
+                                    <p>No photo selected</p>
+                                </div>
+                            </div>
+                        </div>
+                        <input asp-for="PhotoFile" type="file" class="form-control" accept="image/*" id="photoInput" />
+                        <small class="form-text text-muted">Max file size: 5MB. Supported formats: JPG, PNG</small>
+                        <span asp-validation-for="PhotoFile" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between mt-4">
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="fas fa-times"></i> Cancel
+        </a>
+        <button type="submit" class="btn btn-success">
+            <i class="fas fa-save"></i> Create Student
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function() {
+            // Calculate remaining amount
+            function calculateRemainingAmount() {
+                var totalFee = parseFloat($('#TotalFee').val()) || 0;
+                var paidAmount = parseFloat($('#PaidAmount').val()) || 0;
+                var remaining = Math.max(0, totalFee - paidAmount);
+                $('#remainingAmount').val(remaining.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            }
+
+            $('#TotalFee, #PaidAmount').on('input', calculateRemainingAmount);
+            calculateRemainingAmount();
+
+            // Photo preview
+            $('#photoInput').on('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        $('#photoPreview').html(
+                            '<img src="' + e.target.result + '" class="img-fluid rounded" style="max-height: 200px; width: 100%; object-fit: cover;" />'
+                        );
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    $('#photoPreview').html(
+                        '<div class="border rounded d-flex align-items-center justify-content-center" style="height: 200px; background-color: #f8f9fa;">' +
+                        '<div class="text-muted"><i class="fas fa-user fa-4x mb-2"></i><p>No photo selected</p></div></div>'
+                    );
+                }
+            });
+
+            // Generate registration number
+            $('#generateRegBtn').on('click', function() {
+                var tradeId = $('#tradeSelect').val();
+                var sessionId = $('#sessionSelect').val();
+                
+                if (!tradeId || !sessionId) {
+                    alert('Please select both Trade and Session first.');
+                    return;
+                }
+
+                $.post('@Url.Action("GenerateRegistrationNumber")', {
+                    tradeId: tradeId,
+                    sessionId: sessionId
+                }, function(data) {
+                    $('#RegistrationNumber').val(data.registrationNumber);
+                });
+            });
+
+            // Load batches when trade/session changes
+            $('#tradeSelect, #sessionSelect').on('change', function() {
+                var tradeId = $('#tradeSelect').val();
+                var sessionId = $('#sessionSelect').val();
+                
+                if (tradeId && sessionId) {
+                    // Here you would load batches via AJAX
+                    // For now, we'll leave the existing batch options
+                }
+            });
+        });
+    </script>
+}

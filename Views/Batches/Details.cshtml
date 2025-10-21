@@ -1,0 +1,230 @@
+@model StudentManagementSystem.ViewModels.BatchViewModel
+@{
+    ViewData["Title"] = "Batch Details";
+    Layout = "~/Views/Shared/_ModernLayout.cshtml";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">@ViewData["Title"] - @Model.BatchCode</h5>
+                <div class="btn-group" role="group">
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger btn-sm">
+                        <i class="fas fa-trash"></i> Delete
+                    </a>
+                    <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-arrow-left"></i> Back to List
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Basic Information -->
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0">Basic Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-borderless">
+                                    <tr>
+                                        <th>Batch Code:</th>
+                                        <td>@Model.BatchCode</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Batch Name:</th>
+                                        <td>@Model.BatchName</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Session:</th>
+                                        <td>@Model.SessionName</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Trade:</th>
+                                        <td>@Model.TradeName</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Status:</th>
+                                        <td>
+                                            <span class="badge bg-@(Model.Status == "Active" ? "success" : Model.Status == "Completed" ? "primary" : Model.Status == "Suspended" ? "danger" : "secondary")">
+                                                @Model.Status
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Schedule & Capacity -->
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0">Schedule & Capacity</h6>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-borderless">
+                                    <tr>
+                                        <th>Room:</th>
+                                        <td>@Model.RoomNumber</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Timing:</th>
+                                        <td>@Model.TimingDescription</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Start Date:</th>
+                                        <td>@Model.StartDate.ToString("MMM dd, yyyy")</td>
+                                    </tr>
+                                    <tr>
+                                        <th>End Date:</th>
+                                        <td>@Model.EndDate.ToString("MMM dd, yyyy")</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Capacity:</th>
+                                        <td>
+                                            <div class="progress" style="height: 20px;">
+                                                @{
+                                                    var percentage = Model.MaxStudents > 0 ? (Model.CurrentStudents * 100.0 / Model.MaxStudents) : 0;
+                                                    var progressClass = percentage < 50 ? "bg-success" : percentage < 80 ? "bg-warning" : "bg-danger";
+                                                }
+                                                <div class="progress-bar @progressClass" role="progressbar" style="width: @percentage%" 
+                                                     aria-valuenow="@Model.CurrentStudents" aria-valuemin="0" aria-valuemax="@Model.MaxStudents">
+                                                    @Model.CurrentStudents / @Model.MaxStudents
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(Model.Description))
+                {
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Description</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p class="mb-0">@Model.Description</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Enrolled Students -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">Enrolled Students (@Model.CurrentStudents)</h6>
+                                @if (Model.CurrentStudents < Model.MaxStudents)
+                                {
+                                    <a href="#" class="btn btn-success btn-sm">
+                                        <i class="fas fa-plus"></i> Enroll Student
+                                    </a>
+                                }
+                            </div>
+                            <div class="card-body">
+                                @if (Model.EnrolledStudents != null && Model.EnrolledStudents.Any())
+                                {
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Student Code</th>
+                                                    <th>Full Name</th>
+                                                    <th>Email</th>
+                                                    <th>Enrollment Date</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var student in Model.EnrolledStudents)
+                                                {
+                                                    <tr>
+                                                        <td>@student.StudentCode</td>
+                                                        <td>@student.FullName</td>
+                                                        <td>@student.Email</td>
+                                                        <td>@student.EnrollmentDate.ToString("MMM dd, yyyy")</td>
+                                                        <td>
+                                                            <div class="btn-group btn-group-sm" role="group">
+                                                                <a asp-controller="Students" asp-action="Details" asp-route-id="@student.Id" 
+                                                                   class="btn btn-outline-info btn-sm">
+                                                                    <i class="fas fa-eye"></i>
+                                                                </a>
+                                                                <button type="button" class="btn btn-outline-danger btn-sm" 
+                                                                        onclick="removeStudent(@student.Id, '@student.FullName')">
+                                                                    <i class="fas fa-times"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="text-center text-muted py-4">
+                                        <i class="fas fa-users fa-3x mb-3"></i>
+                                        <p class="mb-0">No students enrolled in this batch yet.</p>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audit Information -->
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Audit Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <small class="text-muted">
+                                            <strong>Created:</strong> @Model.CreatedDate.ToString("MMM dd, yyyy hh:mm tt") by @Model.CreatedBy
+                                        </small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        @if (Model.ModifiedDate.HasValue)
+                                        {
+                                            <small class="text-muted">
+                                                <strong>Modified:</strong> @Model.ModifiedDate.Value.ToString("MMM dd, yyyy hh:mm tt") by @Model.ModifiedBy
+                                            </small>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function removeStudent(studentId, studentName) {
+            if (confirm('Are you sure you want to remove ' + studentName + ' from this batch?')) {
+                // TODO: Implement remove student from batch functionality
+                console.log('Remove student:', studentId);
+            }
+        }
+    </script>
+}

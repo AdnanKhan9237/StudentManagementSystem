@@ -1,0 +1,174 @@
+@model StudentManagementSystem.ViewModels.DashboardViewModel
+
+@{
+    ViewData["Title"] = "Student Dashboard";
+}
+
+<div class="container-fluid px-4 mt-4">
+    <h1 class="mb-4">Student Dashboard</h1>
+    
+    @if (Model.CurrentStudent == null)
+    {
+        <div class="alert alert-warning" role="alert">
+            @(ViewBag.Message ?? "Your student profile is not available. Please contact the administrator.")
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Profile Information</h5>
+                        <span class="badge bg-@(Model.CurrentStudent.Status == "Active" ? "success" : "warning")">@Model.CurrentStudent.Status</span>
+                    </div>
+                    <div class="card-body text-center">
+                        @if (!string.IsNullOrEmpty(Model.CurrentStudent.PhotoPath))
+                        {
+                            <img src="@Url.Content(Model.CurrentStudent.PhotoPath)" class="rounded-circle img-fluid mb-3" style="width: 150px; height: 150px; object-fit: cover;" alt="Student Photo">
+                        }
+                        else
+                        {
+                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mb-3 mx-auto" style="width: 150px; height: 150px;">
+                                <i class="fas fa-user fa-4x text-white"></i>
+                            </div>
+                        }
+                        <h4>@Model.CurrentStudent.FullName</h4>
+                        <p class="text-muted mb-2">@Model.CurrentStudent.RegistrationNumber</p>
+                        
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between">
+                                    <span><i class="fas fa-envelope me-2"></i> Email:</span>
+                                    <span class="text-end">@Model.CurrentStudent.Email</span>
+                                </div>
+                            </div>
+                            <div class="col-12 mt-2">
+                                <div class="d-flex justify-content-between">
+                                    <span><i class="fas fa-phone me-2"></i> Phone:</span>
+                                    <span class="text-end">@Model.CurrentStudent.PhoneNumber</span>
+                                </div>
+                            </div>
+                            <div class="col-12 mt-2">
+                                <div class="d-flex justify-content-between">
+                                    <span><i class="fas fa-calendar me-2"></i> Admission:</span>
+                                    <span class="text-end">@Model.CurrentStudent.AdmissionDate.ToString("dd MMM yyyy")</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-header">
+                        <h5 class="mb-0">Academic Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold"><i class="fas fa-tools me-2"></i> Trade:</label>
+                            <p>@Model.CurrentStudent.TradeName</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold"><i class="fas fa-calendar-alt me-2"></i> Session:</label>
+                            <p>@Model.CurrentStudent.SessionName</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold"><i class="fas fa-users me-2"></i> Batch:</label>
+                            <p>@(string.IsNullOrEmpty(Model.CurrentStudent.BatchName) || Model.CurrentStudent.BatchName == "Not Assigned" ? "Not Assigned" : Model.CurrentStudent.BatchName)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-header">
+                        <h5 class="mb-0">Fee Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold"><i class="fas fa-money-bill me-2"></i> Total Fee:</label>
+                            <p>₹@Model.CurrentStudent.TotalFee.ToString("N2")</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold"><i class="fas fa-check-circle me-2"></i> Paid Amount:</label>
+                            <p>₹@Model.CurrentStudent.PaidAmount.ToString("N2")</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold"><i class="fas fa-exclamation-circle me-2"></i> Remaining:</label>
+                            <p>₹@Model.CurrentStudent.RemainingAmount.ToString("N2")</p>
+                        </div>
+                        
+                        @{
+                            var percentage = Model.CurrentStudent.TotalFee > 0 
+                                ? (int)((Model.CurrentStudent.PaidAmount / Model.CurrentStudent.TotalFee) * 100) 
+                                : 0;
+                            var progressClass = percentage switch
+                            {
+                                >= 100 => "bg-success",
+                                >= 75 => "bg-info",
+                                >= 50 => "bg-primary",
+                                >= 25 => "bg-warning",
+                                _ => "bg-danger"
+                            };
+                        }
+                        
+                        <label class="form-label fw-bold"><i class="fas fa-chart-pie me-2"></i> Payment Progress:</label>
+                        <div class="progress mb-2" style="height: 20px;">
+                            <div class="progress-bar @progressClass" role="progressbar" style="width: @percentage%;" 
+                                 aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100">@percentage%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-12 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h5 class="mb-0">Quick Links</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 col-sm-6 mb-3">
+                                <a href="#" class="btn btn-outline-primary w-100 py-3">
+                                    <i class="fas fa-calendar-check fa-2x mb-2"></i><br>
+                                    My Attendance
+                                </a>
+                            </div>
+                            <div class="col-md-3 col-sm-6 mb-3">
+                                <a href="#" class="btn btn-outline-success w-100 py-3">
+                                    <i class="fas fa-graduation-cap fa-2x mb-2"></i><br>
+                                    Exam Results
+                                </a>
+                            </div>
+                            <div class="col-md-3 col-sm-6 mb-3">
+                                <a href="#" class="btn btn-outline-info w-100 py-3">
+                                    <i class="fas fa-clipboard-list fa-2x mb-2"></i><br>
+                                    Assignments
+                                </a>
+                            </div>
+                            <div class="col-md-3 col-sm-6 mb-3">
+                                <a href="#" class="btn btn-outline-warning w-100 py-3">
+                                    <i class="fas fa-certificate fa-2x mb-2"></i><br>
+                                    Certificates
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Student dashboard-specific scripts can go here
+        });
+    </script>
+}
