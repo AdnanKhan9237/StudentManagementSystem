@@ -26,8 +26,8 @@
     <div asp-validation-summary="ModelOnly" class="validation-summary-errors" role="alert"></div>
     
     <div class="form-floating">
-        <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-        <label asp-for="Input.Email">Email</label>
+        <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="Email / Username / CNIC / Phone" />
+        <label asp-for="Input.Email"></label>
         <span asp-validation-for="Input.Email" class="text-danger"></span>
     </div>
     
@@ -49,9 +49,6 @@
         <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
     </button>
     
-    <div class="forgot-password">
-        <a id="forgot-password" asp-page="./ForgotPassword">Forgot your password?</a>
-    </div>
 </form>
 
 @section Scripts {
@@ -70,7 +67,7 @@
         // Show password toggle functionality
         document.addEventListener('DOMContentLoaded', function() {
             // Focus on first input
-            const firstInput = document.querySelector('input[type="email"]');
+            const firstInput = document.querySelector('input[asp-for="Input.Email"]');
             if (firstInput) {
                 firstInput.focus();
             }

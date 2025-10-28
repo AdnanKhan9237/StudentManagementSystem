@@ -80,7 +80,7 @@
                             <th>Session</th>
                             <th>Trade</th>
                             <th>Room</th>
-                            <th>Timing</th>
+                            <th>Teachers</th>
                             <th>Students</th>
                             <th>Status</th>
                             <th>Actions</th>
@@ -98,7 +98,18 @@
                                 <td>@batch.TradeName</td>
                                 <td>@batch.RoomNumber</td>
                                 <td>
-                                    <small>@batch.TimingDescription</small>
+                                    @if (!string.IsNullOrEmpty(batch.PrimaryInstructorName))
+                                    {
+                                        <div><small><strong>P:</strong> @batch.PrimaryInstructorName</small></div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(batch.SecondaryInstructorName))
+                                    {
+                                        <div><small><strong>S:</strong> @batch.SecondaryInstructorName</small></div>
+                                    }
+                                    @if (string.IsNullOrEmpty(batch.PrimaryInstructorName) && string.IsNullOrEmpty(batch.SecondaryInstructorName))
+                                    {
+                                        <small class="text-warning">No teachers assigned</small>
+                                    }
                                 </td>
                                 <td>
                                     <span class="badge bg-info">@batch.CurrentStudents/@batch.MaxStudents</span>
@@ -128,6 +139,9 @@
                                         </a>
                                         <a asp-action="Edit" asp-route-id="@batch.Id" class="btn btn-sm btn-outline-warning" title="Edit">
                                             <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a asp-action="AssignTeacher" asp-route-id="@batch.Id" class="btn btn-sm btn-outline-success" title="Assign Teachers">
+                                            <i class="fas fa-chalkboard-teacher"></i>
                                         </a>
                                         <a asp-action="Delete" asp-route-id="@batch.Id" class="btn btn-sm btn-outline-danger" title="Delete">
                                             <i class="fas fa-trash"></i>

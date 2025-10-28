@@ -58,9 +58,9 @@ public class SessionsController : Controller
                 IsActive = s.IsActive,
                 SessionType = s.SessionType,
                 DurationMonths = s.DurationMonths,
-                Description = s.Description,
+                Description = s.Description ?? string.Empty,
                 CreatedDate = s.CreatedDate,
-                CreatedBy = s.CreatedBy,
+                CreatedBy = s.CreatedBy ?? string.Empty,
                 StudentCount = _context.Students.Count(st => st.SessionId == s.Id && !st.IsDeleted)
             })
             .ToListAsync();
@@ -102,9 +102,9 @@ public class SessionsController : Controller
             IsActive = session.IsActive,
             SessionType = session.SessionType,
             DurationMonths = session.DurationMonths,
-            Description = session.Description,
+            Description = session.Description ?? string.Empty,
             CreatedDate = session.CreatedDate,
-            CreatedBy = session.CreatedBy,
+            CreatedBy = session.CreatedBy ?? string.Empty,
             StudentCount = session.Students.Count(s => !s.IsDeleted)
         };
 
@@ -160,9 +160,9 @@ public class SessionsController : Controller
                 EndDate = model.EndDate,
                 IsCurrentSession = model.IsCurrentSession,
                 IsActive = model.IsActive,
-                SessionType = model.SessionType,
-                DurationMonths = model.DurationMonths,
-                Description = model.Description,
+            SessionType = model.SessionType ?? string.Empty,
+            DurationMonths = model.DurationMonths,
+            Description = model.Description ?? string.Empty,
                 CreatedDate = DateTime.UtcNow,
                 CreatedBy = User.Identity?.Name ?? "System"
             };

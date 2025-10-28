@@ -5,10 +5,11 @@ using StudentManagementSystem.Constants;
 using StudentManagementSystem.Data;
 using StudentManagementSystem.Models.Entities;
 using StudentManagementSystem.ViewModels;
+using System.Security.Claims;
 
 namespace StudentManagementSystem.Controllers;
 
-[Authorize(Roles = $"{UserRoles.SuperAdmin},{UserRoles.Teacher}")]
+[Authorize]
 public class AttendanceController : Controller
 {
     private readonly ApplicationDbContext _context;
@@ -20,10 +21,11 @@ public class AttendanceController : Controller
         _logger = logger;
     }
 
-    // GET: Attendance
+// GET: Attendance
+    [Authorize(Roles = $"{UserRoles.SuperAdmin},{UserRoles.Teacher}")]
     public async Task<IActionResult> Index()
     {
-        var currentUserId = User.Identity?.Name;
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var batches = await GetUserBatchesAsync(currentUserId);
 
         var model = new AttendanceIndexViewModel
@@ -35,7 +37,8 @@ public class AttendanceController : Controller
         return View(model);
     }
 
-    // GET: Attendance/TakeAttendance/5?date=2024-01-01
+// GET: Attendance/TakeAttendance/5?date=2024-01-01
+    [Authorize(Roles = $"{UserRoles.SuperAdmin},{UserRoles.Teacher}")]
     public async Task<IActionResult> TakeAttendance(int batchId, DateTime? date = null)
     {
         date ??= DateTime.Today;
@@ -45,8 +48,6 @@ public class AttendanceController : Controller
             .Include(b => b.Session)
             .Include(b => b.Timing)
             .Include(b => b.Room)
-            .Include(b => b.Students.Where(bs => !bs.IsDeleted))
-            .ThenInclude(bs => bs.Student)
             .FirstOrDefaultAsync(b => b.Id == batchId);
 
         if (batch == null)
@@ -55,11 +56,27 @@ public class AttendanceController : Controller
         }
 
         // Check if user has permission to mark attendance for this batch
-        var currentUserId = User.Identity?.Name;
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!User.IsInRole(UserRoles.SuperAdmin) && !await HasBatchAccessAsync(currentUserId, batchId))
         {
             return Forbid("You can only mark attendance for your assigned batches.");
         }
+
+        // Get students enrolled in this batch
+        var students = await _context.Students
+            .Where(s => s.BatchId == batchId && !s.IsDeleted)
+            .OrderBy(s => s.RegistrationNumber)
+            .ToListAsync();
+
+        _logger.LogInformation("Batch {BatchId}: Found {Count} students", batchId, students.Count);
+
+        // Prefetch enrollments for this batch's session/trade
+        var enrollmentsMap = await _context.Enrollments
+            .AsNoTracking()
+            .Where(e => students.Select(s => s.Id).Contains(e.StudentId)
+                         && e.SessionId == batch.SessionId
+                         && e.TradeId == batch.TradeId)
+            .ToDictionaryAsync(e => e.StudentId, e => e);
 
         // Get existing attendance for this date
         var existingAttendance = await _context.Attendances
@@ -71,29 +88,35 @@ public class AttendanceController : Controller
             BatchId = batchId,
             BatchName = batch.BatchName,
             BatchCode = batch.BatchCode,
-            TradeName = batch.Trade.NameEnglish,
-            SessionName = batch.Session.Name,
-            TimingName = $"{batch.Timing.StartTime:HH:mm} - {batch.Timing.EndTime:HH:mm}",
-            RoomName = batch.Room.RoomName ?? batch.Room.RoomNumber,
+            TradeName = batch.Trade?.NameEnglish ?? "N/A",
+            SessionName = batch.Session?.Name ?? "N/A",
+            TimingName = batch.Timing != null ? $"{batch.Timing.StartTime:HH:mm} - {batch.Timing.EndTime:HH:mm}" : "N/A",
+            RoomName = batch.Room != null ? (batch.Room.RoomName ?? batch.Room.RoomNumber) : "N/A",
             AttendanceDate = date.Value,
-            Students = batch.Students.Select(bs => new StudentAttendanceViewModel
-            {
-                StudentId = bs.Student.Id,
-                RegistrationNumber = bs.Student.RegistrationNumber,
-                StudentName = $"{bs.Student.FirstName} {bs.Student.LastName}",
-                Status = existingAttendance.FirstOrDefault(a => a.StudentId == bs.Student.Id)?.Status ?? "Present",
-                TimeIn = existingAttendance.FirstOrDefault(a => a.StudentId == bs.Student.Id)?.TimeIn,
-                TimeOut = existingAttendance.FirstOrDefault(a => a.StudentId == bs.Student.Id)?.TimeOut,
-                Remarks = existingAttendance.FirstOrDefault(a => a.StudentId == bs.Student.Id)?.Remarks ?? ""
-            }).OrderBy(s => s.RegistrationNumber).ToList()
+            Students = students.Select(s => {
+                enrollmentsMap.TryGetValue(s.Id, out var enr);
+                var existing = existingAttendance.FirstOrDefault(a => a.StudentId == s.Id);
+                return new StudentAttendanceViewModel
+                {
+                    StudentId = s.Id,
+                    EnrollmentId = enr?.Id,
+                    RegistrationNumber = enr?.RegNo ?? s.RegistrationNumber,
+                    StudentName = $"{s.FirstName} {s.LastName}",
+                    Status = existing?.Status ?? "Present",
+                    TimeIn = existing?.TimeIn,
+                    TimeOut = existing?.TimeOut,
+                    Remarks = existing?.Remarks ?? ""
+                };
+            }).ToList()
         };
 
         return View(model);
     }
 
-    // POST: Attendance/TakeAttendance
+// POST: Attendance/TakeAttendance
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = $"{UserRoles.SuperAdmin},{UserRoles.Teacher}")]
     public async Task<IActionResult> TakeAttendance(TakeAttendanceViewModel model)
     {
         if (!ModelState.IsValid)
@@ -108,7 +131,7 @@ public class AttendanceController : Controller
         }
 
         // Check permissions
-        var currentUserId = User.Identity?.Name;
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!User.IsInRole(UserRoles.SuperAdmin) && !await HasBatchAccessAsync(currentUserId, model.BatchId))
         {
             return Forbid();
@@ -123,13 +146,23 @@ public class AttendanceController : Controller
 
             _context.Attendances.RemoveRange(existingAttendance);
 
+            // Resolve enrollments for this batch
+            var studentIds = model.Students.Select(s => s.StudentId).ToList();
+            var enrollmentsMap = await _context.Enrollments
+                .AsNoTracking()
+                .Where(e => studentIds.Contains(e.StudentId) && e.SessionId == batch.SessionId && e.TradeId == batch.TradeId)
+                .ToDictionaryAsync(e => e.StudentId, e => e.Id);
+
             // Add new attendance records
             foreach (var student in model.Students)
             {
+                enrollmentsMap.TryGetValue(student.StudentId, out var enrollmentId);
+
                 var attendance = new Attendance
                 {
                     StudentId = student.StudentId,
                     BatchId = model.BatchId,
+                    EnrollmentId = student.EnrollmentId ?? enrollmentId,
                     Date = model.AttendanceDate,
                     Status = student.Status,
                     TimeIn = student.TimeIn,
@@ -156,7 +189,8 @@ public class AttendanceController : Controller
         }
     }
 
-    // GET: Attendance/ViewAttendance/5?date=2024-01-01
+// GET: Attendance/ViewAttendance/5?date=2024-01-01
+    [Authorize(Roles = $"{UserRoles.SuperAdmin},{UserRoles.Teacher}")]
     public async Task<IActionResult> ViewAttendance(int batchId, DateTime? date = null)
     {
         date ??= DateTime.Today;
@@ -174,7 +208,7 @@ public class AttendanceController : Controller
         }
 
         // Check permissions
-        var currentUserId = User.Identity?.Name;
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!User.IsInRole(UserRoles.SuperAdmin) && !await HasBatchAccessAsync(currentUserId, batchId))
         {
             return Forbid();
@@ -182,9 +216,10 @@ public class AttendanceController : Controller
 
         var attendance = await _context.Attendances
             .Include(a => a.Student)
+            .Include(a => a.Enrollment)
             .Include(a => a.MarkedByUser)
             .Where(a => a.BatchId == batchId && a.Date.Date == date.Value.Date)
-            .OrderBy(a => a.Student.RegistrationNumber)
+            .OrderBy(a => a.Enrollment != null ? a.Enrollment.RegNo : a.Student.RegistrationNumber)
             .ToListAsync();
 
         var model = new ViewAttendanceViewModel
@@ -192,18 +227,19 @@ public class AttendanceController : Controller
             BatchId = batchId,
             BatchName = batch.BatchName,
             BatchCode = batch.BatchCode,
-            TradeName = batch.Trade.NameEnglish,
-            SessionName = batch.Session.Name,
+            TradeName = batch.Trade?.NameEnglish ?? "N/A",
+            SessionName = batch.Session?.Name ?? "N/A",
             AttendanceDate = date.Value,
             AttendanceRecords = attendance.Select(a => new AttendanceRecordViewModel
             {
                 StudentId = a.StudentId,
-                RegistrationNumber = a.Student.RegistrationNumber,
+                EnrollmentId = a.EnrollmentId,
+                RegistrationNumber = a.Enrollment != null ? a.Enrollment.RegNo : a.Student.RegistrationNumber,
                 StudentName = $"{a.Student.FirstName} {a.Student.LastName}",
                 Status = a.Status,
                 TimeIn = a.TimeIn,
                 TimeOut = a.TimeOut,
-                Remarks = a.Remarks,
+                Remarks = a.Remarks ?? string.Empty,
                 MarkedBy = a.MarkedByUser?.UserName ?? "System",
                 MarkedOn = a.CreatedDate
             }).ToList(),
@@ -217,7 +253,8 @@ public class AttendanceController : Controller
         return View(model);
     }
 
-    // GET: Attendance/BatchReport/5
+// GET: Attendance/BatchReport/5
+    [Authorize(Roles = $"{UserRoles.SuperAdmin},{UserRoles.Teacher}")]
     public async Task<IActionResult> BatchReport(int batchId, DateTime? fromDate = null, DateTime? toDate = null)
     {
         fromDate ??= DateTime.Today.AddDays(-30); // Default to last 30 days
@@ -235,7 +272,7 @@ public class AttendanceController : Controller
         }
 
         // Check permissions
-        var currentUserId = User.Identity?.Name;
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!User.IsInRole(UserRoles.SuperAdmin) && !await HasBatchAccessAsync(currentUserId, batchId))
         {
             return Forbid();
@@ -244,12 +281,13 @@ public class AttendanceController : Controller
         // Get attendance data for the date range
         var attendanceData = await _context.Attendances
             .Include(a => a.Student)
+            .Include(a => a.Enrollment)
             .Where(a => a.BatchId == batchId && a.Date >= fromDate && a.Date <= toDate)
-            .GroupBy(a => a.StudentId)
+            .GroupBy(a => a.EnrollmentId ?? 0)
             .Select(g => new StudentAttendanceReportViewModel
             {
-                StudentId = g.Key,
-                RegistrationNumber = g.First().Student.RegistrationNumber,
+                StudentId = g.First().StudentId,
+                RegistrationNumber = g.First().Enrollment != null ? g.First().Enrollment.RegNo : g.First().Student.RegistrationNumber,
                 StudentName = $"{g.First().Student.FirstName} {g.First().Student.LastName}",
                 TotalDays = g.Count(),
                 PresentDays = g.Count(a => a.Status == "Present"),
@@ -288,8 +326,8 @@ public class AttendanceController : Controller
             BatchId = batchId,
             BatchName = batch.BatchName,
             BatchCode = batch.BatchCode,
-            TradeName = batch.Trade.NameEnglish,
-            SessionName = batch.Session.Name,
+            TradeName = batch.Trade?.NameEnglish ?? "N/A",
+            SessionName = batch.Session?.Name ?? "N/A",
             FromDate = fromDate.Value,
             ToDate = toDate.Value,
             TotalStudentsInBatch = batch.Students.Count,
@@ -301,7 +339,8 @@ public class AttendanceController : Controller
         return View(model);
     }
 
-    // GET: Attendance/StudentReport/5
+// GET: Attendance/StudentReport/5
+    [Authorize(Roles = $"{UserRoles.SuperAdmin},{UserRoles.Teacher},{UserRoles.Student}")]
     public async Task<IActionResult> StudentReport(int studentId, DateTime? fromDate = null, DateTime? toDate = null)
     {
         fromDate ??= DateTime.Today.AddDays(-30);
@@ -319,14 +358,23 @@ public class AttendanceController : Controller
         }
 
         // Check permissions
-        var currentUserId = User.Identity?.Name;
-        if (!User.IsInRole(UserRoles.SuperAdmin) && student.BatchId.HasValue && !await HasBatchAccessAsync(currentUserId, student.BatchId.Value))
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (User.IsInRole(UserRoles.Student))
+        {
+            // Students can only view their own attendance
+            if (student.UserId != currentUserId)
+            {
+                return Forbid();
+            }
+        }
+        else if (!User.IsInRole(UserRoles.SuperAdmin) && student.BatchId.HasValue && !await HasBatchAccessAsync(currentUserId, student.BatchId.Value))
         {
             return Forbid();
         }
 
         var attendance = await _context.Attendances
             .Include(a => a.Batch)
+            .Include(a => a.Enrollment)
             .Include(a => a.MarkedByUser)
             .Where(a => a.StudentId == studentId && a.Date >= fromDate && a.Date <= toDate)
             .OrderByDescending(a => a.Date)
@@ -335,7 +383,7 @@ public class AttendanceController : Controller
         var model = new StudentAttendanceReportViewModel
         {
             StudentId = studentId,
-            RegistrationNumber = student.RegistrationNumber,
+            RegistrationNumber = attendance.FirstOrDefault()?.Enrollment?.RegNo ?? student.RegistrationNumber,
             StudentName = $"{student.FirstName} {student.LastName}",
             TradeName = student.Trade.NameEnglish,
             SessionName = student.Session.Name,
@@ -353,7 +401,7 @@ public class AttendanceController : Controller
                 Status = a.Status,
                 TimeIn = a.TimeIn,
                 TimeOut = a.TimeOut,
-                Remarks = a.Remarks,
+                Remarks = a.Remarks ?? string.Empty,
                 MarkedBy = a.MarkedByUser?.UserName ?? "System",
                 MarkedOn = a.CreatedDate,
                 BatchName = a.Batch.BatchName
@@ -418,7 +466,7 @@ public class AttendanceController : Controller
             return false;
 
         var teacher = await _context.Teachers
-            .FirstOrDefaultAsync(t => t.User != null && t.User.UserName == userId && !t.IsDeleted);
+            .FirstOrDefaultAsync(t => t.UserId == userId && !t.IsDeleted);
 
         if (teacher == null)
             return false;
@@ -436,7 +484,7 @@ public class AttendanceController : Controller
             return new List<int>();
 
         var teacher = await _context.Teachers
-            .FirstOrDefaultAsync(t => t.User != null && t.User.UserName == userId && !t.IsDeleted);
+            .FirstOrDefaultAsync(t => t.UserId == userId && !t.IsDeleted);
 
         if (teacher == null)
             return new List<int>();

@@ -33,8 +33,8 @@ public class RoomsController : Controller
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             query = query.Where(r => r.RoomNumber.Contains(searchTerm) ||
-                                   r.RoomName.Contains(searchTerm) ||
-                                   r.Building.Contains(searchTerm));
+                                   (r.RoomName != null && r.RoomName.Contains(searchTerm)) ||
+                                   (r.Building != null && r.Building.Contains(searchTerm)));
         }
 
         if (!string.IsNullOrWhiteSpace(typeFilter))
@@ -52,17 +52,17 @@ public class RoomsController : Controller
             {
                 Id = r.Id,
                 RoomNumber = r.RoomNumber,
-                RoomName = r.RoomName,
+                RoomName = r.RoomName ?? string.Empty,
                 Capacity = r.Capacity,
-                RoomType = r.RoomType,
-                Building = r.Building,
-                Floor = r.Floor,
-                Equipment = r.Equipment,
+                RoomType = r.RoomType ?? string.Empty,
+                Building = r.Building ?? string.Empty,
+                Floor = r.Floor ?? string.Empty,
+                Equipment = r.Equipment ?? string.Empty,
                 HasProjector = r.HasProjector,
                 HasComputers = r.HasComputers,
                 HasAirConditioning = r.HasAirConditioning,
                 CreatedDate = r.CreatedDate,
-                CreatedBy = r.CreatedBy,
+                CreatedBy = r.CreatedBy ?? string.Empty,
                 CurrentBatches = _context.Batches.Count(b => b.RoomId == r.Id && !b.IsDeleted && b.Status == "Active")
             })
             .ToListAsync();
@@ -104,19 +104,19 @@ public class RoomsController : Controller
         {
             Id = room.Id,
             RoomNumber = room.RoomNumber,
-            RoomName = room.RoomName,
+            RoomName = room.RoomName ?? string.Empty,
             Capacity = room.Capacity,
-            RoomType = room.RoomType,
-            Building = room.Building,
-            Floor = room.Floor,
-            Equipment = room.Equipment,
+            RoomType = room.RoomType ?? string.Empty,
+            Building = room.Building ?? string.Empty,
+            Floor = room.Floor ?? string.Empty,
+            Equipment = room.Equipment ?? string.Empty,
             HasProjector = room.HasProjector,
             HasComputers = room.HasComputers,
             HasAirConditioning = room.HasAirConditioning,
             CreatedDate = room.CreatedDate,
-            CreatedBy = room.CreatedBy,
+            CreatedBy = room.CreatedBy ?? string.Empty,
             ModifiedDate = room.ModifiedDate,
-            ModifiedBy = room.ModifiedBy,
+            ModifiedBy = room.ModifiedBy ?? string.Empty,
             CurrentBatches = room.Batches.Count(b => b.Status == "Active"),
             AssignedBatches = room.Batches
                 .Where(b => b.Status == "Active")
@@ -199,12 +199,12 @@ public class RoomsController : Controller
         {
             Id = room.Id,
             RoomNumber = room.RoomNumber,
-            RoomName = room.RoomName,
+            RoomName = room.RoomName ?? string.Empty,
             Capacity = room.Capacity,
-            RoomType = room.RoomType,
-            Building = room.Building,
-            Floor = room.Floor,
-            Equipment = room.Equipment,
+            RoomType = room.RoomType ?? string.Empty,
+            Building = room.Building ?? string.Empty,
+            Floor = room.Floor ?? string.Empty,
+            Equipment = room.Equipment ?? string.Empty,
             HasProjector = room.HasProjector,
             HasComputers = room.HasComputers,
             HasAirConditioning = room.HasAirConditioning
@@ -286,11 +286,11 @@ public class RoomsController : Controller
         {
             Id = room.Id,
             RoomNumber = room.RoomNumber,
-            RoomName = room.RoomName,
+            RoomName = room.RoomName ?? string.Empty,
             Capacity = room.Capacity,
-            RoomType = room.RoomType,
-            Building = room.Building,
-            Floor = room.Floor,
+            RoomType = room.RoomType ?? string.Empty,
+            Building = room.Building ?? string.Empty,
+            Floor = room.Floor ?? string.Empty,
             HasProjector = room.HasProjector,
             HasComputers = room.HasComputers,
             HasAirConditioning = room.HasAirConditioning,

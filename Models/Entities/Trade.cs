@@ -31,4 +31,7 @@ public class Trade : BaseEntity
     public virtual ICollection<Session> Sessions { get; set; } = new List<Session>();
     public virtual ICollection<Student> Students { get; set; } = new List<Student>();
     public virtual ICollection<Batch> Batches { get; set; } = new List<Batch>();
+
+    // New: enrollments per trade
+    public virtual ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
 }

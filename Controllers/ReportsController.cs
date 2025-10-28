@@ -148,6 +148,51 @@ public class ReportsController : Controller
         return View(model);
     }
 
+    // GET: Reports/EnrollmentReport
+    public async Task<IActionResult> EnrollmentReport(int? sessionId, int? tradeId)
+    {
+        var query = _context.Enrollments
+            .Include(e => e.Student)
+            .Include(e => e.Session)
+            .Include(e => e.Trade)
+            .Include(e => e.Batch)
+            .Where(e => !e.IsDeleted);
+
+        if (sessionId.HasValue)
+            query = query.Where(e => e.SessionId == sessionId);
+
+        if (tradeId.HasValue)
+            query = query.Where(e => e.TradeId == tradeId);
+
+        var items = await query
+            .OrderBy(e => e.Session.Name)
+            .ThenBy(e => e.Trade.NameEnglish)
+            .ThenBy(e => e.RegNo)
+            .Select(e => new EnrollmentReportItem
+            {
+                EnrollmentId = e.Id,
+                RegNo = e.RegNo,
+                StudentName = e.Student.FirstName + " " + e.Student.LastName,
+                SessionName = e.Session.Name,
+                TradeName = e.Trade.NameEnglish,
+                BatchCode = e.Batch != null ? e.Batch.BatchCode : "N/A",
+                AdmissionDate = e.AdmissionDate,
+                Status = e.Status
+            })
+            .ToListAsync();
+
+        var model = new EnrollmentReportListViewModel
+        {
+            Enrollments = items,
+            SessionId = sessionId,
+            TradeId = tradeId,
+            Sessions = await _context.Sessions.Where(s => !s.IsDeleted).ToListAsync(),
+            Trades = await _context.Trades.Where(t => !t.IsDeleted).ToListAsync()
+        };
+
+        return View(model);
+    }
+
     // GET: Reports/AttendanceReport
     public async Task<IActionResult> AttendanceReport(int? batchId, DateTime? startDate, DateTime? endDate)
     {

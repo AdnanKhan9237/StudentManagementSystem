@@ -36,10 +36,10 @@ namespace StudentManagementSystem.Controllers
             // Apply search filter
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
-                users = users.Where(u => u.UserName.Contains(searchTerm) ||
-                                        u.Email.Contains(searchTerm) ||
-                                        u.FirstName.Contains(searchTerm) ||
-                                        u.LastName.Contains(searchTerm));
+                users = users.Where(u => (u.UserName != null && u.UserName.Contains(searchTerm)) ||
+                                        (u.Email != null && u.Email.Contains(searchTerm)) ||
+                                        (u.FirstName != null && u.FirstName.Contains(searchTerm)) ||
+                                        (u.LastName != null && u.LastName.Contains(searchTerm)));
             }
 
             var totalUsers = await users.CountAsync();
@@ -56,10 +56,10 @@ namespace StudentManagementSystem.Controllers
                 userViewModels.Add(new UserViewModel
                 {
                     Id = user.Id,
-                    UserName = user.UserName,
-                    Email = user.Email,
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
+                    UserName = user.UserName ?? string.Empty,
+                    Email = user.Email ?? string.Empty,
+                    FirstName = user.FirstName ?? string.Empty,
+                    LastName = user.LastName ?? string.Empty,
                     PhoneNumber = user.PhoneNumber,
                     IsActive = !user.LockoutEnd.HasValue || user.LockoutEnd < DateTime.UtcNow,
                     Roles = roles.ToList(),
@@ -160,10 +160,10 @@ namespace StudentManagementSystem.Controllers
             var model = new EditUserViewModel
             {
                 Id = user.Id,
-                UserName = user.UserName,
-                Email = user.Email,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
+                UserName = user.UserName ?? string.Empty,
+                Email = user.Email ?? string.Empty,
+                FirstName = user.FirstName ?? string.Empty,
+                LastName = user.LastName ?? string.Empty,
                 PhoneNumber = user.PhoneNumber,
                 IsActive = !user.LockoutEnd.HasValue || user.LockoutEnd < DateTime.UtcNow,
                 SelectedRoles = userRoles.ToList(),
@@ -265,19 +265,60 @@ namespace StudentManagementSystem.Controllers
             return Json(new { success = false, message = $"Failed to reset password: {errors}" });
         }
 
+        // POST: UserManagement/Delete/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = UserRoles.SuperAdmin)]
+        public async Task<IActionResult> Delete(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                return Json(new { success = false, message = "User ID is required." });
+            }
+
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+            {
+                return Json(new { success = false, message = "User not found." });
+            }
+
+            // Prevent deleting yourself
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser?.Id == id)
+            {
+                return Json(new { success = false, message = "You cannot delete your own account." });
+            }
+
+            var result = await _userManager.DeleteAsync(user);
+            if (result.Succeeded)
+            {
+                _logger.LogInformation($"User {user.Email} deleted by {User.Identity?.Name}");
+                return Json(new { success = true, message = "User deleted successfully!" });
+            }
+
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            return Json(new { success = false, message = $"Failed to delete user: {errors}" });
+        }
+
         private async Task<List<SelectListItem>> GetAvailableRolesAsync()
         {
             var roles = await _roleManager.Roles.ToListAsync();
             return roles.Select(r => new SelectListItem
             {
-                Text = r.Name,
-                Value = r.Name
+                Text = r.Name ?? string.Empty,
+                Value = r.Name ?? string.Empty
             }).ToList();
         }
 
         private async Task<List<SelectListItem>> GetAvailableRolesForCreationAsync()
         {
-            var currentUserRoles = await _userManager.GetRolesAsync(await _userManager.GetUserAsync(User));
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
+            {
+                return new List<SelectListItem>();
+            }
+            
+            var currentUserRoles = await _userManager.GetRolesAsync(currentUser);
             var allRoles = await _roleManager.Roles.ToListAsync();
 
             // SuperAdmin can assign any role
@@ -285,8 +326,8 @@ namespace StudentManagementSystem.Controllers
             {
                 return allRoles.Select(r => new SelectListItem
                 {
-                    Text = r.Name,
-                    Value = r.Name
+                    Text = r.Name ?? string.Empty,
+                    Value = r.Name ?? string.Empty
                 }).ToList();
             }
 
@@ -297,8 +338,8 @@ namespace StudentManagementSystem.Controllers
                     .Where(r => r.Name != UserRoles.SuperAdmin)
                     .Select(r => new SelectListItem
                     {
-                        Text = r.Name,
-                        Value = r.Name
+                        Text = r.Name ?? string.Empty,
+                        Value = r.Name ?? string.Empty
                     }).ToList();
             }
 

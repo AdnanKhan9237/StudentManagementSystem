@@ -535,19 +535,23 @@ public class TeacherController : Controller
 
     private static string GenerateRandomPassword()
     {
-        const string chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+        const string uppercase = "ABCDEFGHJKMNPQRSTUVWXYZ";
+        const string lowercase = "abcdefghijkmnpqrstuvwxyz";
+        const string numbers = "23456789";
+        const string allChars = uppercase + lowercase + numbers;
+        
         var random = new Random();
         var password = new StringBuilder();
 
         // Ensure at least one uppercase, one lowercase, and one number
-        password.Append(chars[random.Next(0, 25)]);  // Uppercase
-        password.Append(chars[random.Next(25, 49)]); // Lowercase  
-        password.Append(chars[random.Next(49, 58)]); // Number
+        password.Append(uppercase[random.Next(uppercase.Length)]);
+        password.Append(lowercase[random.Next(lowercase.Length)]);
+        password.Append(numbers[random.Next(numbers.Length)]);
 
         // Add 5 more random characters
         for (int i = 0; i < 5; i++)
         {
-            password.Append(chars[random.Next(chars.Length)]);
+            password.Append(allChars[random.Next(allChars.Length)]);
         }
 
         // Shuffle the password

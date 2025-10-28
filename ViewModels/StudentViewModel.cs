@@ -74,8 +74,13 @@ public class StudentViewModel
     [Display(Name = "Session")]
     public int SessionId { get; set; }
 
+    [Required(ErrorMessage = "Batch is required")]
     [Display(Name = "Batch")]
     public int? BatchId { get; set; }
+    
+    [Required(ErrorMessage = "Timing is required")]
+    [Display(Name = "Timing")]
+    public int? TimingId { get; set; }
 
     [Display(Name = "Previous Qualification")]
     public string? PreviousQualification { get; set; }
@@ -115,6 +120,7 @@ public class StudentViewModel
     public SelectList? Trades { get; set; }
     public SelectList? Sessions { get; set; }
     public SelectList? Batches { get; set; }
+    public SelectList? Timings { get; set; }
     public SelectList? GenderOptions { get; set; }
     public SelectList? StatusOptions { get; set; }
 

@@ -1,9 +1,15 @@
 @model StudentManagementSystem.ViewModels.UserListViewModel
+@using StudentManagementSystem.Constants
 
 @{
     ViewData["Title"] = "User Management";
     Layout = "~/Views/Shared/_ModernLayout.cshtml";
 }
+
+<!-- Hidden form to emit anti-forgery token for AJAX posts -->
+<form id="antiForgeryForm" class="d-none" method="post">
+    @Html.AntiForgeryToken()
+</form>
 
 <div class="container-fluid px-4 mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -95,6 +101,13 @@
                                                 onclick="showResetPasswordModal('@user.Id', '@user.UserName')">
                                             <i class="fas fa-key"></i>
                                         </button>
+                                        @if (User.IsInRole(UserRoles.SuperAdmin))
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                                    onclick="showDeleteUserModal('@user.Id', '@user.UserName')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        }
                                     </div>
                                 </td>
                             </tr>
@@ -155,6 +168,27 @@
     </div>
 </div>
 
+<!-- Delete User Modal -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="deleteUserId" />
+                <p>Are you sure you want to delete user <strong id="deleteUserName"></strong>?</p>
+                <p class="text-danger small mb-0">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="deleteUser()">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         function showResetPasswordModal(userId, userName) {
@@ -188,5 +222,33 @@
                 }
             });
         });
+
+        function showDeleteUserModal(userId, userName) {
+            document.getElementById('deleteUserId').value = userId;
+            document.getElementById('deleteUserName').textContent = userName;
+            new bootstrap.Modal(document.getElementById('deleteUserModal')).show();
+        }
+
+        function deleteUser() {
+            const userId = document.getElementById('deleteUserId').value;
+
+            fetch('@Url.Action("Delete", "UserManagement")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: 'id=' + encodeURIComponent(userId)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Reload to reflect changes
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            });
+        }
     </script>
 }

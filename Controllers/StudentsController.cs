@@ -103,6 +103,30 @@ public class StudentsController : Controller
     [Authorize(Roles = $"{UserRoles.SuperAdmin},{UserRoles.Accounts}")]
     public async Task<IActionResult> Create(StudentViewModel model)
     {
+        _logger.LogInformation("=== STUDENT CREATE DEBUG START ===");
+        _logger.LogInformation("BatchId: {BatchId}, TimingId: {TimingId}", model.BatchId, model.TimingId);
+        
+        // Log ModelState errors
+        if (!ModelState.IsValid)
+        {
+            _logger.LogWarning("ModelState is INVALID");
+            foreach (var key in ModelState.Keys)
+            {
+                var errors = ModelState[key]?.Errors;
+                if (errors != null && errors.Count > 0)
+                {
+                    foreach (var error in errors)
+                    {
+                        _logger.LogWarning("{Key}: {Error}", key, error.ErrorMessage ?? error.Exception?.Message);
+                    }
+                }
+            }
+        }
+        else
+        {
+            _logger.LogInformation("ModelState is VALID");
+        }
+        
         if (ModelState.IsValid)
         {
             // Handle photo upload
@@ -222,10 +246,33 @@ public class StudentsController : Controller
 
     // AJAX: Generate Registration Number
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> GenerateRegistrationNumber(int tradeId, int sessionId)
     {
-        var registrationNumber = await _studentService.GenerateRegistrationNumberAsync(tradeId, sessionId);
-        return Json(new { registrationNumber });
+        try
+        {
+            _logger.LogInformation("Generating registration number for TradeId: {TradeId}, SessionId: {SessionId}", tradeId, sessionId);
+            
+            if (tradeId <= 0 || sessionId <= 0)
+            {
+                return Json(new { success = false, message = "Invalid trade or session selected" });
+            }
+            
+            var registrationNumber = await _studentService.GenerateRegistrationNumberAsync(tradeId, sessionId);
+            
+            if (string.IsNullOrEmpty(registrationNumber))
+            {
+                return Json(new { success = false, message = "Failed to generate registration number" });
+            }
+            
+            _logger.LogInformation("Generated registration number: {RegistrationNumber}", registrationNumber);
+            return Json(new { success = true, registrationNumber });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating registration number");
+            return Json(new { success = false, message = "An error occurred while generating registration number" });
+        }
     }
 
     // AJAX: Check Registration Number Uniqueness
@@ -234,6 +281,87 @@ public class StudentsController : Controller
     {
         var isUnique = await _studentService.IsRegistrationNumberUniqueAsync(registrationNumber, excludeId);
         return Json(new { isUnique });
+    }
+
+    // AJAX: Get Batches by Trade and Session
+    [HttpGet]
+    public async Task<IActionResult> GetBatches(int tradeId, int sessionId)
+    {
+        try
+        {
+            _logger.LogInformation("Getting batches for TradeId: {TradeId}, SessionId: {SessionId}", tradeId, sessionId);
+            
+            var batches = await _dropdownService.GetBatchesAsync(tradeId, sessionId, null);
+            
+            // Convert SelectList to simple array for JavaScript
+            var batchList = batches.Select(b => new { 
+                value = b.Value, 
+                text = b.Text 
+            }).ToList();
+            
+            _logger.LogInformation("Found {Count} batches", batchList.Count);
+            return Json(batchList);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting batches");
+            return Json(new List<object>());
+        }
+    }
+
+    // AJAX: Get Timings for a Batch
+    [HttpGet]
+    public async Task<IActionResult> GetBatchTimings(int batchId)
+    {
+        try
+        {
+            _logger.LogInformation("Getting timings for BatchId: {BatchId}", batchId);
+            
+            // Get batch timings from BatchTiming table
+            var batchTimings = await _studentService.GetBatchTimingsAsync(batchId);
+            
+            if (batchTimings != null && batchTimings.Any())
+            {
+                var timingList = batchTimings.Select(bt => new {
+                    value = bt.TimingId.ToString(),
+                    text = bt.TimingDescription,
+                    maxStudents = bt.MaxStudents,
+                    currentStudents = bt.CurrentStudents,
+                    availableSeats = bt.AvailableSeats
+                }).ToList();
+                
+                _logger.LogInformation("Found {Count} timings for batch", timingList.Count);
+                return Json(timingList);
+            }
+            
+            // Fallback: if no batch timings, return the single timing from Batch table
+            var batch = await _studentService.GetBatchByIdAsync(batchId);
+            if (batch?.TimingId != null)
+            {
+                var timing = await _studentService.GetTimingByIdAsync(batch.TimingId.Value);
+                if (timing != null)
+                {
+                    var fallbackList = new[] {
+                        new {
+                            value = timing.Id.ToString(),
+                            text = timing.Name,
+                            maxStudents = batch.MaxStudents,
+                            currentStudents = batch.CurrentEnrollment,
+                            availableSeats = batch.MaxStudents - batch.CurrentEnrollment
+                        }
+                    };
+                    return Json(fallbackList);
+                }
+            }
+            
+            _logger.LogWarning("No timings found for batch {BatchId}", batchId);
+            return Json(new List<object>());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting batch timings");
+            return Json(new List<object>());
+        }
     }
 
     // AJAX: Assign to Batch
@@ -246,6 +374,29 @@ public class StudentsController : Controller
             return Json(new { success = true, message = "Student assigned to batch successfully!" });
         }
         return Json(new { success = false, message = "Failed to assign student to batch. Batch may be full." });
+    }
+
+    // AJAX: Provision student login (default password and force change)
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = $"{UserRoles.SuperAdmin},{UserRoles.Admin}")]
+    public async Task<IActionResult> ProvisionLogin(int studentId)
+    {
+        var success = await _studentService.ProvisionStudentLoginAsync(studentId);
+        if (success)
+return Json(new { success = true, message = "Student login provisioned. Default password: Sostti123+" });
+        return Json(new { success = false, message = "Could not provision student login." });
+    }
+
+    // Bulk: provision all unlinked student logins
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = $"{UserRoles.SuperAdmin},{UserRoles.Admin}")]
+    public async Task<IActionResult> ProvisionAllLogins()
+    {
+        var (created, skipped, failed) = await _studentService.ProvisionAllUnlinkedStudentLoginsAsync();
+TempData["SuccessMessage"] = $"Provisioned: {created}, Skipped: {skipped}, Failed: {failed}. Default password: Sostti123+";
+        return RedirectToAction(nameof(Index));
     }
 
     // AJAX: Remove from Batch
@@ -288,12 +439,13 @@ public class StudentsController : Controller
     {
         model.Trades = await _dropdownService.GetTradesAsync(model.TradeId);
         model.Sessions = await _dropdownService.GetSessionsAsync(model.SessionId);
-        model.Batches = await _dropdownService.GetBatchesAsync(model.TradeId, model.SessionId, model.BatchId);
+        // Load all active batches initially, filter by AJAX when trade/session selected
+        model.Batches = await _dropdownService.GetBatchesAsync(null, null, model.BatchId);
         model.GenderOptions = _dropdownService.GetGenderOptions(model.Gender);
         model.StatusOptions = _dropdownService.GetStatusOptions(model.Status);
     }
 
-    private async Task<string> SavePhotoAsync(IFormFile photoFile)
+    private async Task<string?> SavePhotoAsync(IFormFile photoFile)
     {
         try
         {

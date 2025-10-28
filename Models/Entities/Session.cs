@@ -30,4 +30,7 @@ public class Session : BaseEntity
     public virtual ICollection<Student> Students { get; set; } = new List<Student>();
     public virtual ICollection<Batch> Batches { get; set; } = new List<Batch>();
     public virtual ICollection<Exam> Exams { get; set; } = new List<Exam>();
+
+    // New: enrollments per session
+    public virtual ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
 }

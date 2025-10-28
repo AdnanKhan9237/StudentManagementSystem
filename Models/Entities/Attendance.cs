@@ -8,6 +8,9 @@ public class Attendance : BaseEntity
     // Foreign Keys
     public int StudentId { get; set; }
     public int BatchId { get; set; }
+
+    // New: Link attendance to a specific enrollment (session+trade)
+    public int? EnrollmentId { get; set; }
     
     public DateTime Date { get; set; }
     
@@ -28,6 +31,9 @@ public class Attendance : BaseEntity
     
     [ForeignKey(nameof(BatchId))]
     public virtual Batch Batch { get; set; } = null!;
+
+    [ForeignKey(nameof(EnrollmentId))]
+    public virtual Enrollment? Enrollment { get; set; }
     
     [ForeignKey(nameof(MarkedBy))]
     public virtual ApplicationUser? MarkedByUser { get; set; }

@@ -44,7 +44,7 @@ public class DashboardController : Controller
         }
         else if (userRoles.Contains(UserRoles.Teacher))
         {
-            viewModel.DashboardType = "Teacher";
+            return await TeacherDashboard();
         }
         else if (userRoles.Contains(UserRoles.Accounts))
         {
@@ -188,6 +188,73 @@ public class DashboardController : Controller
         }
     }
 
+    private async Task<IActionResult> TeacherDashboard()
+    {
+        var currentUser = await _userManager.GetUserAsync(User);
+        if (currentUser == null)
+        {
+            return RedirectToPage("/Account/Login", new { area = "Identity" });
+        }
+
+        var teacher = await _context.Teachers
+            .Include(t => t.PrimaryBatches.Where(b => !b.IsDeleted))
+                .ThenInclude(b => b.Trade)
+            .Include(t => t.PrimaryBatches.Where(b => !b.IsDeleted))
+                .ThenInclude(b => b.Session)
+            .Include(t => t.SecondaryBatches.Where(b => !b.IsDeleted))
+                .ThenInclude(b => b.Trade)
+            .Include(t => t.SecondaryBatches.Where(b => !b.IsDeleted))
+                .ThenInclude(b => b.Session)
+            .FirstOrDefaultAsync(t => t.UserId == currentUser.Id && !t.IsDeleted);
+
+        if (teacher == null)
+        {
+            ViewBag.Message = "No teacher profile found for this user.";
+            return View("TeacherDashboard", new TeacherDashboardViewModel());
+        }
+
+        var viewModel = new TeacherDashboardViewModel
+        {
+            Teacher = new TeacherViewModel
+            {
+                Id = teacher.Id,
+                TeacherCode = teacher.TeacherCode,
+                FirstName = teacher.FirstName,
+                LastName = teacher.LastName,
+                Email = teacher.Email,
+                PhoneNumber = teacher.PhoneNumber,
+                PhotoPath = teacher.PhotoPath,
+                Status = teacher.Status,
+                Qualification = teacher.Qualification,
+                Specialization = teacher.Specialization
+            },
+            PrimaryBatches = teacher.PrimaryBatches.Select(b => new TeacherBatchSummaryViewModel
+            {
+                Id = b.Id,
+                BatchCode = b.BatchCode,
+                BatchName = b.BatchName,
+                TradeName = b.Trade?.NameEnglish ?? "N/A",
+                SessionName = b.Session?.Name ?? "N/A",
+                StudentCount = _context.Students.Count(s => s.BatchId == b.Id && !s.IsDeleted),
+                Status = b.Status
+            }).ToList(),
+            SecondaryBatches = teacher.SecondaryBatches.Select(b => new TeacherBatchSummaryViewModel
+            {
+                Id = b.Id,
+                BatchCode = b.BatchCode,
+                BatchName = b.BatchName,
+                TradeName = b.Trade?.NameEnglish ?? "N/A",
+                SessionName = b.Session?.Name ?? "N/A",
+                StudentCount = _context.Students.Count(s => s.BatchId == b.Id && !s.IsDeleted),
+                Status = b.Status
+            }).ToList(),
+            TotalStudents = teacher.PrimaryBatches.Sum(b => _context.Students.Count(s => s.BatchId == b.Id && !s.IsDeleted)) +
+                           teacher.SecondaryBatches.Sum(b => _context.Students.Count(s => s.BatchId == b.Id && !s.IsDeleted))
+        };
+
+        return View("TeacherDashboard", viewModel);
+    }
+
     private async Task<IActionResult> StudentDashboard()
     {
         var currentUser = await _userManager.GetUserAsync(User);
@@ -216,9 +283,9 @@ public class DashboardController : Controller
                 Id = student.Id,
                 RegistrationNumber = student.RegistrationNumber,
                 FullName = $"{student.FirstName} {student.LastName}",
-                Email = student.Email,
-                PhoneNumber = student.PhoneNumber,
-                PhotoPath = student.PhotoPath,
+                Email = student.Email ?? string.Empty,
+                PhoneNumber = student.PhoneNumber ?? string.Empty,
+                PhotoPath = student.PhotoPath ?? string.Empty,
                 Status = student.Status,
                 TradeName = student.Trade?.NameEnglish ?? "Not Assigned",
                 SessionName = student.Session?.Name ?? "Not Assigned",

@@ -1,0 +1,388 @@
+@model StudentManagementSystem.ViewModels.FeeReportListViewModel
+@{
+    ViewData["Title"] = "Fee Reports";
+    Layout = "~/Views/Shared/_ModernLayout.cshtml";
+}
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">@ViewData["Title"]</h5>
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Reports
+                </a>
+            </div>
+            <div class="card-body">
+                <!-- Filters -->
+                <form method="get" class="mb-4">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="sessionId" class="form-label">Session</label>
+                            <select name="sessionId" id="sessionId" class="form-select">
+                                <option value="">All Sessions</option>
+                                @foreach (var session in Model.Sessions)
+                                {
+                                    <option value="@session.Id" selected="@(Model.SessionId == session.Id)">
+                                        @session.Name
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="tradeId" class="form-label">Trade</label>
+                            <select name="tradeId" id="tradeId" class="form-select">
+                                <option value="">All Trades</option>
+                                @foreach (var trade in Model.Trades)
+                                {
+                                    <option value="@trade.Id" selected="@(Model.TradeId == trade.Id)">
+                                        @trade.NameEnglish
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="status" class="form-label">Payment Status</label>
+                            <select name="status" id="status" class="form-select">
+                                <option value="">All Status</option>
+                                <option value="Paid" selected="@(Model.Status == "Paid")">Fully Paid</option>
+                                <option value="Partial" selected="@(Model.Status == "Partial")">Partially Paid</option>
+                                <option value="Unpaid" selected="@(Model.Status == "Unpaid")">Unpaid</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-filter"></i> Apply Filters
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <a asp-action="FeeReport" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Clear Filters
+                            </a>
+                            <button type="button" class="btn btn-success ms-2" onclick="exportToExcel()">
+                                <i class="fas fa-file-excel"></i> Export to Excel
+                            </button>
+                            <button type="button" class="btn btn-danger ms-2" onclick="exportToPDF()">
+                                <i class="fas fa-file-pdf"></i> Export to PDF
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Summary Statistics -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h4>@Model.Students.Count</h4>
+                                <p class="mb-0">Total Students</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h4>@Model.TotalFees.ToString("C")</h4>
+                                <p class="mb-0">Total Fees</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h4>@Model.TotalPaid.ToString("C")</h4>
+                                <p class="mb-0">Total Collected</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <h4>@Model.TotalRemaining.ToString("C")</h4>
+                                <p class="mb-0">Outstanding</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fee Collection Progress -->
+                @if (Model.Students.Any())
+                {
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Fee Collection Progress</h6>
+                                </div>
+                                <div class="card-body">
+                                    @{
+                                        var collectionRate = Model.TotalFees > 0 ? (double)Model.TotalPaid / (double)Model.TotalFees * 100 : 0;
+                                        var outstandingRate = Model.TotalFees > 0 ? (double)Model.TotalRemaining / (double)Model.TotalFees * 100 : 0;
+                                    }
+                                    <div class="progress" style="height: 30px;">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: @collectionRate%" aria-valuenow="@collectionRate" aria-valuemin="0" aria-valuemax="100">
+                                            Collected @Math.Round(collectionRate, 1)%
+                                        </div>
+                                        <div class="progress-bar bg-warning" role="progressbar" style="width: @outstandingRate%" aria-valuenow="@outstandingRate" aria-valuemin="0" aria-valuemax="100">
+                                            Outstanding @Math.Round(outstandingRate, 1)%
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Status Breakdown -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Payment Status Breakdown</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row text-center">
+                                        <div class="col-md-4">
+                                            <div class="card border-success">
+                                                <div class="card-body">
+                                                    <h4 class="text-success">@Model.Students.Count(s => s.FeeStatus == "Paid")</h4>
+                                                    <p class="mb-0">Fully Paid Students</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card border-warning">
+                                                <div class="card-body">
+                                                    <h4 class="text-warning">@Model.Students.Count(s => s.FeeStatus == "Partial")</h4>
+                                                    <p class="mb-0">Partially Paid Students</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card border-danger">
+                                                <div class="card-body">
+                                                    <h4 class="text-danger">@Model.Students.Count(s => s.FeeStatus == "Unpaid")</h4>
+                                                    <p class="mb-0">Unpaid Students</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Data Table -->
+                @if (Model.Students.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="feeReportTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Student Code</th>
+                                    <th>Student Name</th>
+                                    <th>Session</th>
+                                    <th>Trade</th>
+                                    <th>Total Fee</th>
+                                    <th>Paid Amount</th>
+                                    <th>Remaining</th>
+                                    <th>Payment Status</th>
+                                    <th>Last Payment</th>
+                                    <th>Progress</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var student in Model.Students)
+                                {
+                                    <tr>
+                                        <td><strong>@student.StudentCode</strong></td>
+                                        <td>@student.StudentName</td>
+                                        <td>@student.SessionName</td>
+                                        <td>@student.TradeName</td>
+                                        <td class="text-end">@student.TotalFee.ToString("C")</td>
+                                        <td class="text-end text-success">@student.PaidAmount.ToString("C")</td>
+                                        <td class="text-end">
+                                            <span class="text-@(student.RemainingAmount > 0 ? "danger" : "success")">
+                                                @student.RemainingAmount.ToString("C")
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-@(student.FeeStatus == "Paid" ? "success" : student.FeeStatus == "Partial" ? "warning" : "danger")">
+                                                @student.FeeStatus
+                                            </span>
+                                        </td>
+                                        <td>
+                                            @if (student.LastPaymentDate.HasValue)
+                                            {
+                                                @student.LastPaymentDate.Value.ToString("dd/MM/yyyy")
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">No payments</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @{
+                                                var paymentProgress = student.TotalFee > 0 ? (double)student.PaidAmount / (double)student.TotalFee * 100 : 0;
+                                            }
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar bg-@(paymentProgress >= 100 ? "success" : paymentProgress >= 50 ? "warning" : "danger")" 
+                                                     role="progressbar" 
+                                                     style="width: @paymentProgress%"
+                                                     aria-valuenow="@paymentProgress" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="100">
+                                                    @Math.Round(paymentProgress, 1)%
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button type="button" class="btn btn-sm btn-outline-info" onclick="viewFeeDetails('@student.StudentCode', '@student.StudentName', '@student.TotalFee.ToString("C")', '@student.PaidAmount.ToString("C")', '@student.RemainingAmount.ToString("C")', '@student.FeeStatus', '@(student.LastPaymentDate?.ToString("dd/MM/yyyy") ?? "No payments")')">
+                                                    <i class="fas fa-eye"></i> Details
+                                                </button>
+                                                @if (student.RemainingAmount > 0)
+                                                {
+                                                    <a asp-controller="FeeManagement" asp-action="Payment" asp-route-studentCode="@student.StudentCode" class="btn btn-sm btn-outline-success">
+                                                        <i class="fas fa-credit-card"></i> Pay
+                                                    </a>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-5">
+                        <i class="fas fa-dollar-sign fa-4x text-muted mb-3"></i>
+                        <h5 class="text-muted">No fee records found</h5>
+                        <p class="text-muted">Try adjusting your filter criteria.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fee Details Modal -->
+<div class="modal fade" id="feeDetailsModal" tabindex="-1" aria-labelledby="feeDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="feeDetailsModalLabel">Fee Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Student:</strong>
+                        <p id="modalStudentInfo"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Payment Status:</strong>
+                        <p id="modalFeeStatus"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Total Fee:</strong>
+                        <p id="modalTotalFee" class="text-primary"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Paid Amount:</strong>
+                        <p id="modalPaidAmount" class="text-success"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Remaining Amount:</strong>
+                        <p id="modalRemainingAmount"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Last Payment:</strong>
+                        <p id="modalLastPayment"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="modalPaymentButton" style="display: none;">
+                    <i class="fas fa-credit-card"></i> Make Payment
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#feeReportTable').DataTable({
+                "pageLength": 25,
+                "ordering": true,
+                "searching": true,
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+                       '<"row"<"col-sm-12"tr>>' +
+                       '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+                "language": {
+                    "search": "Search students:",
+                    "lengthMenu": "Show _MENU_ students per page",
+                    "info": "Showing _START_ to _END_ of _TOTAL_ students",
+                    "infoEmpty": "Showing 0 to 0 of 0 students",
+                    "infoFiltered": "(filtered from _MAX_ total students)"
+                },
+                "columnDefs": [
+                    { "orderable": false, "targets": [9, 10] }, // Disable sorting for Progress and Actions columns
+                    { "className": "text-end", "targets": [4, 5, 6] } // Right align monetary columns
+                ],
+                "order": [[6, "desc"]] // Sort by remaining amount descending (highest debts first)
+            });
+        });
+
+        function viewFeeDetails(studentCode, studentName, totalFee, paidAmount, remainingAmount, feeStatus, lastPayment) {
+            $('#modalStudentInfo').text(studentCode + ' - ' + studentName);
+            $('#modalFeeStatus').html('<span class="badge bg-' + (feeStatus === 'Paid' ? 'success' : feeStatus === 'Partial' ? 'warning' : 'danger') + '">' + feeStatus + '</span>');
+            $('#modalTotalFee').text(totalFee);
+            $('#modalPaidAmount').text(paidAmount);
+            $('#modalRemainingAmount').text(remainingAmount);
+            $('#modalRemainingAmount').removeClass('text-success text-danger').addClass(remainingAmount !== '$0.00' ? 'text-danger' : 'text-success');
+            $('#modalLastPayment').text(lastPayment);
+            
+            // Show payment button if there's outstanding balance
+            if (remainingAmount !== '$0.00') {
+                $('#modalPaymentButton').show().attr('onclick', 'redirectToPayment("' + studentCode + '")');
+            } else {
+                $('#modalPaymentButton').hide();
+            }
+            
+            $('#feeDetailsModal').modal('show');
+        }
+
+        function redirectToPayment(studentCode) {
+            window.location.href = '/FeeManagement/Payment?studentCode=' + studentCode;
+        }
+
+        function exportToExcel() {
+            // Add Excel export functionality
+            alert('Excel export functionality will be implemented');
+        }
+
+        function exportToPDF() {
+            // Add PDF export functionality
+            alert('PDF export functionality will be implemented');
+        }
+    </script>
+}
+
+@section Styles {
+    <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+}

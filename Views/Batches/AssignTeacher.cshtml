@@ -1,0 +1,337 @@
+@model StudentManagementSystem.ViewModels.BatchViewModel
+@{
+    ViewData["Title"] = "Assign Teachers to Batch";
+    Layout = "~/Views/Shared/_ModernLayout.cshtml";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-chalkboard-teacher"></i> Assign Teachers to Batch</h2>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Batches
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row">
+    <!-- Batch Information -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-layer-group"></i> Batch Information</h5>
+            </div>
+            <div class="card-body">
+                <h4 class="text-center">@Model.BatchName</h4>
+                <p class="text-center text-muted">@Model.BatchCode</p>
+                
+                <hr>
+                
+                <div class="row">
+                    <div class="col-12">
+                        <strong>Trade:</strong> @Model.TradeName<br>
+                        <strong>Session:</strong> @Model.SessionName<br>
+                        <strong>Room:</strong> @(Model.RoomName ?? "Not assigned")<br>
+                        <strong>Timing:</strong> @(Model.TimingName ?? "Not assigned")<br>
+                        <strong>Status:</strong> 
+                        @switch (Model.Status)
+                        {
+                            case "Active":
+                                <span class="badge bg-success">Active</span>
+                                break;
+                            case "Completed":
+                                <span class="badge bg-primary">Completed</span>
+                                break;
+                            case "Cancelled":
+                                <span class="badge bg-danger">Cancelled</span>
+                                break;
+                            default:
+                                <span class="badge bg-secondary">@Model.Status</span>
+                                break;
+                        }
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h5>@Model.CurrentEnrollment</h5>
+                        <small class="text-muted">Students</small>
+                    </div>
+                    <div class="col-6">
+                        <h5>@Model.MaxStudents</h5>
+                        <small class="text-muted">Capacity</small>
+                    </div>
+                </div>
+                
+                <div class="progress mt-2" style="height: 8px;">
+                    <div class="progress-bar bg-info" role="progressbar" 
+                         style="width: @Model.FillPercentage%"
+                         aria-valuenow="@Model.FillPercentage" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                    </div>
+                </div>
+                <small class="text-muted">@Model.FillPercentage.ToString("F0")% filled</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Teacher Assignment -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-users"></i> Teacher Assignment</h5>
+            </div>
+            <div class="card-body">
+                <!-- Current Assignments -->
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle"></i> Current Teacher Assignments</h6>
+                    <div id="currentTeachers">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Primary Teacher:</strong>
+                                <div id="primaryTeacherInfo">
+                                    @if (!string.IsNullOrEmpty(Model.PrimaryInstructorName))
+                                    {
+                                        <span class="text-success">@Model.PrimaryInstructorName</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-warning">Not assigned</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Secondary Teacher:</strong>
+                                <div id="secondaryTeacherInfo">
+                                    @if (!string.IsNullOrEmpty(Model.SecondaryInstructorName))
+                                    {
+                                        <span class="text-success">@Model.SecondaryInstructorName</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-warning">Not assigned</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assignment Form -->
+                <form id="teacherAssignmentForm">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Primary Teacher</label>
+                            <select id="primaryTeacherSelect" class="form-select">
+                                <option value="">Select Primary Teacher...</option>
+                            </select>
+                            <small class="text-muted">Main instructor for this batch</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Secondary Teacher (Optional)</label>
+                            <select id="secondaryTeacherSelect" class="form-select">
+                                <option value="">Select Secondary Teacher...</option>
+                            </select>
+                            <small class="text-muted">Assistant instructor for this batch</small>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="button" class="btn btn-primary me-2" onclick="assignTeachers()">
+                                <i class="fas fa-save"></i> Assign Teachers
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary me-2" onclick="clearAssignments()">
+                                <i class="fas fa-times"></i> Clear All Assignments
+                            </button>
+                            <button type="button" class="btn btn-info" onclick="viewStudentList()">
+                                <i class="fas fa-list"></i> View Students in Batch (@Model.CurrentEnrollment)
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Student List (Hidden by default) -->
+                <div id="studentListContainer" class="mt-4" style="display: none;">
+                    <hr>
+                    <h6><i class="fas fa-users"></i> Students in this Batch</h6>
+                    <div id="studentList" class="table-responsive">
+                        <!-- Students will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Assignment Impact -->
+                <div class="alert alert-light mt-4">
+                    <h6><i class="fas fa-lightbulb"></i> Assignment Impact</h6>
+                    <p class="mb-1">When you assign teachers to this batch:</p>
+                    <ul class="mb-0">
+                        <li><strong>All @Model.CurrentEnrollment students</strong> in this batch will be automatically assigned to the selected teachers</li>
+                        <li><strong>Primary teacher</strong> will have full access to manage and teach all students</li>
+                        <li><strong>Secondary teacher</strong> (if assigned) will assist the primary teacher</li>
+                        <li>Teachers can view attendance, grades, and reports for these students</li>
+                        <li>Students will see both teachers in their class information</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            loadAvailableTeachers();
+        });
+
+        function loadAvailableTeachers() {
+            $.get('/Batches/GetAvailableTeachers', function(data) {
+                const primarySelect = $('#primaryTeacherSelect');
+                const secondarySelect = $('#secondaryTeacherSelect');
+                
+                // Clear existing options
+                primarySelect.empty().append('<option value="">Select Primary Teacher...</option>');
+                secondarySelect.empty().append('<option value="">Select Secondary Teacher...</option>');
+                
+                // Populate both dropdowns
+                data.forEach(function(teacher) {
+                    const option = `<option value="${teacher.id}">${teacher.name} (${teacher.teacherCode})</option>`;
+                    primarySelect.append(option);
+                    secondarySelect.append(option);
+                });
+
+                // Set current selections
+                @if (Model.PrimaryInstructorId.HasValue)
+                {
+                    <text>primarySelect.val(@Model.PrimaryInstructorId);</text>
+                }
+                @if (Model.SecondaryInstructorId.HasValue)
+                {
+                    <text>secondarySelect.val(@Model.SecondaryInstructorId);</text>
+                }
+            }).fail(function() {
+                alert('Failed to load available teachers. Please refresh the page.');
+            });
+        }
+
+        function assignTeachers() {
+            const primaryTeacherId = $('#primaryTeacherSelect').val();
+            const secondaryTeacherId = $('#secondaryTeacherSelect').val();
+
+            if (!primaryTeacherId) {
+                alert('Please select at least a primary teacher.');
+                return;
+            }
+
+            if (primaryTeacherId === secondaryTeacherId) {
+                alert('Primary and secondary teachers cannot be the same person.');
+                return;
+            }
+
+            const confirmMessage = `Are you sure you want to assign teachers to this batch?\\n\\n` +
+                `This will affect all @Model.CurrentEnrollment students in the batch.\\n` +
+                `Primary Teacher: ${$('#primaryTeacherSelect option:selected').text()}\\n` +
+                `Secondary Teacher: ${secondaryTeacherId ? $('#secondaryTeacherSelect option:selected').text() : 'None'}`;
+
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            // Show loading
+            $('button').prop('disabled', true);
+
+            $.post('/Batches/AssignTeachers', {
+                batchId: @Model.Id,
+                primaryTeacherId: primaryTeacherId,
+                secondaryTeacherId: secondaryTeacherId || null,
+                __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+            }, function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + response.message);
+                    $('button').prop('disabled', false);
+                }
+            }).fail(function() {
+                alert('Failed to assign teachers. Please try again.');
+                $('button').prop('disabled', false);
+            });
+        }
+
+        function clearAssignments() {
+            if (!confirm('Are you sure you want to remove all teacher assignments from this batch?')) {
+                return;
+            }
+
+            $.post('/Batches/ClearTeacherAssignments', {
+                batchId: @Model.Id,
+                __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+            }, function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            }).fail(function() {
+                alert('Failed to clear assignments. Please try again.');
+            });
+        }
+
+        function viewStudentList() {
+            const container = $('#studentListContainer');
+            const studentList = $('#studentList');
+
+            if (container.is(':visible')) {
+                container.slideUp();
+                return;
+            }
+
+            studentList.html('<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading students...</div>');
+            container.slideDown();
+
+            $.get('/Batches/GetBatchStudents', { batchId: @Model.Id }, function(data) {
+                if (data.length === 0) {
+                    studentList.html('<div class="alert alert-info">No students assigned to this batch yet.</div>');
+                    return;
+                }
+
+                let html = '<table class="table table-sm table-striped">';
+                html += '<thead><tr><th>Registration No.</th><th>Name</th><th>Status</th><th>Contact</th></tr></thead><tbody>';
+                
+                data.forEach(function(student) {
+                    const statusBadge = student.status === 'Active' ? 'bg-success' : 
+                                      student.status === 'Graduated' ? 'bg-primary' : 
+                                      student.status === 'Dropped' ? 'bg-danger' : 'bg-secondary';
+                    
+                    html += `<tr>
+                        <td><strong>${student.registrationNumber}</strong></td>
+                        <td>${student.fullName}</td>
+                        <td><span class="badge ${statusBadge}">${student.status}</span></td>
+                        <td><small>${student.email || 'No email'}<br>${student.phone || 'No phone'}</small></td>
+                    </tr>`;
+                });
+                
+                html += '</tbody></table>';
+                studentList.html(html);
+            }).fail(function() {
+                studentList.html('<div class="alert alert-danger">Failed to load students.</div>');
+            });
+        }
+    </script>
+}

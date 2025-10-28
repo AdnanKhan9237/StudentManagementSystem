@@ -25,6 +25,12 @@ public class BatchViewModel
 
     [Display(Name = "Timing")]
     public int? TimingId { get; set; }
+    
+    [Display(Name = "Timings")]
+    public List<int> SelectedTimingIds { get; set; } = new();
+    
+    // For displaying batch timings with max students
+    public List<BatchTimingViewModel> BatchTimings { get; set; } = new();
 
     [Display(Name = "Room")]
     public int? RoomId { get; set; }
@@ -45,9 +51,8 @@ public class BatchViewModel
     [DataType(DataType.Date)]
     public DateTime EndDate { get; set; }
 
-    [Required(ErrorMessage = "Maximum students is required")]
     [Display(Name = "Maximum Students")]
-    [Range(1, 200, ErrorMessage = "Maximum students must be between 1 and 200")]
+    [Range(0, 200, ErrorMessage = "Maximum students must be between 0 and 200")]
     public int MaxStudents { get; set; }
 
     [Display(Name = "Current Enrollment")]
@@ -117,4 +122,16 @@ public class BatchListViewModel
     public int? SessionFilter { get; set; }
     public string StatusFilter { get; set; } = string.Empty;
     public SelectList? StatusOptions { get; set; }
+}
+
+public class BatchTimingViewModel
+{
+    public int Id { get; set; }
+    public int BatchId { get; set; }
+    public int TimingId { get; set; }
+    public string TimingName { get; set; } = string.Empty;
+    public string TimingDescription { get; set; } = string.Empty;
+    public int MaxStudents { get; set; }
+    public int CurrentStudents { get; set; }
+    public int AvailableSeats => MaxStudents - CurrentStudents;
 }

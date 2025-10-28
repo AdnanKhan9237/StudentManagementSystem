@@ -13,6 +13,7 @@
 </div>
 
 <form asp-action="Create" method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+    <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
     <div class="row">
         <!-- Basic Information -->
         <div class="col-md-8">
@@ -199,10 +200,23 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label asp-for="BatchId" class="form-label"></label>
-                                @Html.DropDownListFor(m => m.BatchId, Model.Batches, "Select Batch (Optional)", new { @class = "form-select", id = "batchSelect" })
+                                @Html.DropDownListFor(m => m.BatchId, Model.Batches, "Select Batch", new { @class = "form-select", required = "required", id = "batchSelect" })
                                 <span asp-validation-for="BatchId" class="text-danger"></span>
                             </div>
                         </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="TimingId" class="form-label"></label>
+                                <select asp-for="TimingId" class="form-select" id="timingSelect" required>
+                                    <option value="">Select Batch First</option>
+                                </select>
+                                <span asp-validation-for="TimingId" class="text-danger"></span>
+                                <small class="text-muted">Available timings for selected batch</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label asp-for="RegistrationNumber" class="form-label"></label>
@@ -360,16 +374,19 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
+        // Debug: Check if jQuery is loaded
+        console.log('jQuery version:', typeof $ !== 'undefined' ? $.fn.jquery : 'jQuery not loaded');
+        
         $(document).ready(function() {
             // Calculate remaining amount
             function calculateRemainingAmount() {
-                var totalFee = parseFloat($('#TotalFee').val()) || 0;
-                var paidAmount = parseFloat($('#PaidAmount').val()) || 0;
+                var totalFee = parseFloat($('input[name="TotalFee"]').val()) || 0;
+                var paidAmount = parseFloat($('input[name="PaidAmount"]').val()) || 0;
                 var remaining = Math.max(0, totalFee - paidAmount);
-                $('#remainingAmount').val(remaining.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                $('#remainingAmount').val(remaining.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
             }
 
-            $('#TotalFee, #PaidAmount').on('input', calculateRemainingAmount);
+            $('input[name="TotalFee"], input[name="PaidAmount"]').on('input', calculateRemainingAmount);
             calculateRemainingAmount();
 
             // Photo preview
@@ -390,35 +407,158 @@
                     );
                 }
             });
+            
+            // Debug form submission
+            $('form').on('submit', function(e) {
+                console.log('=== STUDENT FORM SUBMIT DEBUG ===');
+                console.log('BatchId:', $('select[name="BatchId"]').val());
+                console.log('TimingId:', $('#timingSelect').val());
+                console.log('RegistrationNumber:', $('input[name="RegistrationNumber"]').val());
+                
+                // Check if timing is selected
+                if (!$('#timingSelect').val()) {
+                    console.error('Timing not selected!');
+                    alert('Please select a timing!');
+                    e.preventDefault();
+                    return false;
+                }
+            });
 
             // Generate registration number
             $('#generateRegBtn').on('click', function() {
-                var tradeId = $('#tradeSelect').val();
-                var sessionId = $('#sessionSelect').val();
+                var tradeId = $('select[name="TradeId"]').val();
+                var sessionId = $('select[name="SessionId"]').val();
+                
+                console.log('Generate button clicked. TradeId:', tradeId, 'SessionId:', sessionId);
                 
                 if (!tradeId || !sessionId) {
                     alert('Please select both Trade and Session first.');
                     return;
                 }
 
-                $.post('@Url.Action("GenerateRegistrationNumber")', {
-                    tradeId: tradeId,
-                    sessionId: sessionId
-                }, function(data) {
-                    $('#RegistrationNumber').val(data.registrationNumber);
+                // Show loading state
+                var $btn = $(this);
+                var originalHtml = $btn.html();
+                $btn.html('<i class="fas fa-spinner fa-spin"></i> Generating...').prop('disabled', true);
+                
+                $.ajax({
+                    url: '@Url.Action("GenerateRegistrationNumber")',
+                    type: 'POST',
+                    data: {
+                        tradeId: tradeId,
+                        sessionId: sessionId,
+                        __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(data) {
+                        console.log('Registration generation response:', data);
+                        if (data.success && data.registrationNumber) {
+                            $('input[name="RegistrationNumber"]').val(data.registrationNumber);
+                        } else {
+                            alert('Error: ' + (data.message || 'Failed to generate registration number'));
+                        }
+                        // Restore button state
+                        $btn.html(originalHtml).prop('disabled', false);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error generating registration number:', error, 'Status:', status, 'XHR:', xhr);
+                        console.log('Response Text:', xhr.responseText);
+                        alert('Error generating registration number. Please check console for details.');
+                        // Restore button state
+                        $btn.html(originalHtml).prop('disabled', false);
+                    }
                 });
             });
 
             // Load batches when trade/session changes
-            $('#tradeSelect, #sessionSelect').on('change', function() {
-                var tradeId = $('#tradeSelect').val();
-                var sessionId = $('#sessionSelect').val();
+            $('select[name="TradeId"], select[name="SessionId"]').on('change', function() {
+                var tradeId = $('select[name="TradeId"]').val();
+                var sessionId = $('select[name="SessionId"]').val();
                 
                 if (tradeId && sessionId) {
-                    // Here you would load batches via AJAX
-                    // For now, we'll leave the existing batch options
+                    loadBatches(tradeId, sessionId);
+                } else {
+                    $('select[name="BatchId"]').html('<option value="">Select Batch</option>');
+                    $('#timingSelect').html('<option value="">Select Batch First</option>');
                 }
             });
+            
+            // Load timings when batch changes
+            $('select[name="BatchId"]').on('change', function() {
+                var batchId = $(this).val();
+                
+                if (batchId) {
+                    loadTimings(batchId);
+                } else {
+                    $('#timingSelect').html('<option value="">Select Batch First</option>');
+                }
+            });
+            
+            // Function to load batches
+            function loadBatches(tradeId, sessionId) {
+                console.log('Loading batches for TradeId:', tradeId, 'SessionId:', sessionId);
+                
+                $.ajax({
+                    url: '@Url.Action("GetBatches", "Students")',
+                    type: 'GET',
+                    data: {
+                        tradeId: tradeId,
+                        sessionId: sessionId
+                    },
+                    success: function(data) {
+                        console.log('Batches loaded:', data);
+                        
+                        var batchSelect = $('select[name="BatchId"]');
+                        batchSelect.html('<option value="">Select Batch</option>');
+                        
+                        if (data && data.length > 0) {
+                            $.each(data, function(index, batch) {
+                                batchSelect.append('<option value="' + batch.value + '">' + batch.text + '</option>');
+                            });
+                        } else {
+                            batchSelect.append('<option value="" disabled>No batches available</option>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error loading batches:', error, 'Status:', status, 'XHR:', xhr);
+                        $('#batchSelect').html('<option value="">Select Batch</option><option value="" disabled>Error loading batches</option>');
+                    }
+                });
+            }
+            
+            // Function to load timings for a batch
+            function loadTimings(batchId) {
+                console.log('Loading timings for BatchId:', batchId);
+                
+                $.ajax({
+                    url: '@Url.Action("GetBatchTimings", "Students")',
+                    type: 'GET',
+                    data: {
+                        batchId: batchId
+                    },
+                    success: function(data) {
+                        console.log('Timings loaded:', data);
+                        
+                        var timingSelect = $('#timingSelect');
+                        timingSelect.html('<option value="">Select Timing</option>');
+                        
+                        if (data && data.length > 0) {
+                            $.each(data, function(index, timing) {
+                                var displayText = timing.text;
+                                if (timing.availableSeats !== undefined) {
+                                    displayText += ' (Available: ' + timing.availableSeats + '/' + timing.maxStudents + ')';
+                                }
+                                timingSelect.append('<option value="' + timing.value + '">' + displayText + '</option>');
+                            });
+                        } else {
+                            timingSelect.append('<option value="" disabled>No timings available for this batch</option>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error loading timings:', error, 'Status:', status, 'XHR:', xhr);
+                        $('#timingSelect').html('<option value="">Select Timing</option><option value="" disabled>Error loading timings</option>');
+                    }
+                });
+            }
         });
     </script>
 }

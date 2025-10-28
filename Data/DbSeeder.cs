@@ -20,20 +20,8 @@ public static class DbSeeder
         // Seed roles
         await SeedRolesAsync(roleManager);
 
-        // Seed users
+        // Seed SuperAdmin user only
         await SeedUsersAsync(userManager, context);
-
-        // Seed trades
-        await SeedTradesAsync(context);
-
-        // Seed sessions
-        await SeedSessionsAsync(context);
-
-        // Seed rooms
-        await SeedRoomsAsync(context);
-
-        // Seed timings
-        await SeedTimingsAsync(context);
 
         await context.SaveChangesAsync();
     }
@@ -53,31 +41,9 @@ public static class DbSeeder
 
     private static async Task SeedUsersAsync(UserManager<ApplicationUser> userManager, ApplicationDbContext context)
     {
-        // SuperAdmin
+        // SuperAdmin - Only seed user
         await CreateUserIfNotExistsAsync(userManager, "superadmin@sms.com", "SuperAdmin@123", 
             "Super", "Admin", UserRoles.SuperAdmin, "IT", "System Administrator");
-        
-        // Admin
-        await CreateUserIfNotExistsAsync(userManager, "admin@sms.com", "Admin@123", 
-            "Admin", "User", UserRoles.Admin, "Administration", "Administrator");
-        
-        // Teacher
-        await CreateUserIfNotExistsAsync(userManager, "teacher@sms.com", "Teacher@123", 
-            "John", "Teacher", UserRoles.Teacher, "Academic", "Instructor");
-        
-        // Accounts
-        await CreateUserIfNotExistsAsync(userManager, "accounts@sms.com", "Accounts@123", 
-            "Finance", "Manager", UserRoles.Accounts, "Finance", "Accounts Manager");
-        
-        // Student User - will be linked to a student record
-        var studentUser = await CreateUserIfNotExistsAsync(userManager, "student@sms.com", "Student@123", 
-            "Ahmad", "Ali", UserRoles.Student, null, null);
-        
-        // Create sample student record linked to student user
-        if (studentUser != null)
-        {
-            await CreateSampleStudentAsync(context, studentUser.Id);
-        }
     }
     
     private static async Task<ApplicationUser?> CreateUserIfNotExistsAsync(
@@ -115,51 +81,6 @@ public static class DbSeeder
             }
         }
         return user;
-    }
-    
-    private static async Task CreateSampleStudentAsync(ApplicationDbContext context, string userId)
-    {
-        // Check if student already exists
-        if (await context.Students.AnyAsync(s => s.UserId == userId))
-            return;
-            
-        // Get the first trade and session for the sample student
-        var trade = await context.Trades.FirstOrDefaultAsync(t => t.Code == "CIT");
-        var session = await context.Sessions.FirstOrDefaultAsync(s => s.IsCurrentSession);
-        
-        if (trade != null && session != null)
-        {
-            var student = new Student
-            {
-                UserId = userId,
-                RegistrationNumber = "CIT-2025-001",
-                StudentCode = "STD-001",
-                FirstName = "Ahmad",
-                LastName = "Ali",
-                FatherName = "Muhammad Ali",
-                Email = "student@sms.com",
-                PhoneNumber = "+92 300 1234567",
-                CNIC = "12345-6789012-3",
-                DateOfBirth = new DateTime(2000, 1, 1),
-                Gender = "Male",
-                Address = "123 Main Street, Lahore",
-                City = "Lahore",
-                Province = "Punjab",
-                Country = "Pakistan",
-                PostalCode = "54000",
-                TradeId = trade.Id,
-                SessionId = session.Id,
-                AdmissionDate = DateTime.UtcNow.AddDays(-30),
-                TotalFee = trade.TotalFee,
-                PaidAmount = 10000, // Partial payment
-                Status = "Active",
-                CreatedDate = DateTime.UtcNow,
-                CreatedBy = "System"
-            };
-            
-            context.Students.Add(student);
-            await context.SaveChangesAsync();
-        }
     }
 
     private static async Task SeedTradesAsync(ApplicationDbContext context)
@@ -466,6 +387,190 @@ public static class DbSeeder
             };
 
             context.Timings.AddRange(timings);
+        }
+    }
+    
+    private static async Task SeedTeachersAsync(ApplicationDbContext context)
+    {
+        if (!await context.Teachers.AnyAsync())
+        {
+            var teachers = new List<Teacher>
+            {
+                new Teacher
+                {
+                    TeacherCode = "TCH-001",
+                    Username = "john.smith",
+                    FirstName = "John",
+                    LastName = "Smith",
+                    FatherName = "Robert Smith",
+                    CNIC = "12345-6789012-4",
+                    DateOfBirth = new DateTime(1985, 5, 15),
+                    Gender = "Male",
+                    PhoneNumber = "+92 300 1234568",
+                    Email = "john.smith@sms.com",
+                    Address = "456 Teacher Street, Lahore",
+                    City = "Lahore",
+                    Province = "Punjab",
+                    Country = "Pakistan",
+                    PostalCode = "54000",
+                    HireDate = DateTime.UtcNow.AddYears(-2),
+                    Status = "Active",
+                    Qualification = "MS Computer Science",
+                    Specialization = "Programming & Software Development",
+                    Salary = 45000,
+                    CreatedDate = DateTime.UtcNow,
+                    CreatedBy = "System"
+                },
+                new Teacher
+                {
+                    TeacherCode = "TCH-002",
+                    Username = "sarah.johnson",
+                    FirstName = "Sarah",
+                    LastName = "Johnson",
+                    FatherName = "Michael Johnson",
+                    CNIC = "12345-6789012-5",
+                    DateOfBirth = new DateTime(1988, 8, 22),
+                    Gender = "Female",
+                    PhoneNumber = "+92 300 1234569",
+                    Email = "sarah.johnson@sms.com",
+                    Address = "789 Faculty Lane, Lahore",
+                    City = "Lahore",
+                    Province = "Punjab",
+                    Country = "Pakistan",
+                    PostalCode = "54000",
+                    HireDate = DateTime.UtcNow.AddYears(-1),
+                    Status = "Active",
+                    Qualification = "BS Electrical Engineering",
+                    Specialization = "Electronics & Circuit Design",
+                    Salary = 42000,
+                    CreatedDate = DateTime.UtcNow,
+                    CreatedBy = "System"
+                },
+                new Teacher
+                {
+                    TeacherCode = "TCH-003",
+                    Username = "ahmed.hassan",
+                    FirstName = "Ahmed",
+                    LastName = "Hassan",
+                    FatherName = "Muhammad Hassan",
+                    CNIC = "12345-6789012-6",
+                    DateOfBirth = new DateTime(1982, 12, 10),
+                    Gender = "Male",
+                    PhoneNumber = "+92 300 1234570",
+                    Email = "ahmed.hassan@sms.com",
+                    Address = "321 Instructor Road, Lahore",
+                    City = "Lahore",
+                    Province = "Punjab",
+                    Country = "Pakistan",
+                    PostalCode = "54000",
+                    HireDate = DateTime.UtcNow.AddYears(-3),
+                    Status = "Active",
+                    Qualification = "Diploma in Mechanical Engineering",
+                    Specialization = "Automotive Technology",
+                    Salary = 40000,
+                    CreatedDate = DateTime.UtcNow,
+                    CreatedBy = "System"
+                },
+                new Teacher
+                {
+                    TeacherCode = "TCH-004",
+                    Username = "fatima.ali",
+                    FirstName = "Fatima",
+                    LastName = "Ali",
+                    FatherName = "Ali Ahmad",
+                    CNIC = "12345-6789012-7",
+                    DateOfBirth = new DateTime(1990, 3, 18),
+                    Gender = "Female",
+                    PhoneNumber = "+92 300 1234571",
+                    Email = "fatima.ali@sms.com",
+                    Address = "654 Education Street, Lahore",
+                    City = "Lahore",
+                    Province = "Punjab",
+                    Country = "Pakistan",
+                    PostalCode = "54000",
+                    HireDate = DateTime.UtcNow.AddMonths(-8),
+                    Status = "Active",
+                    Qualification = "BS Mathematics",
+                    Specialization = "Mathematics & Physics",
+                    Salary = 38000,
+                    CreatedDate = DateTime.UtcNow,
+                    CreatedBy = "System"
+                },
+                new Teacher
+                {
+                    TeacherCode = "TCH-005",
+                    Username = "muhammad.khan",
+                    FirstName = "Muhammad",
+                    LastName = "Khan",
+                    FatherName = "Abdul Khan",
+                    CNIC = "12345-6789012-8",
+                    DateOfBirth = new DateTime(1986, 11, 5),
+                    Gender = "Male",
+                    PhoneNumber = "+92 300 1234572",
+                    Email = "muhammad.khan@sms.com",
+                    Address = "987 Training Avenue, Lahore",
+                    City = "Lahore",
+                    Province = "Punjab",
+                    Country = "Pakistan",
+                    PostalCode = "54000",
+                    HireDate = DateTime.UtcNow.AddYears(-1).AddMonths(-6),
+                    Status = "Active",
+                    Qualification = "Diploma in Welding Technology",
+                    Specialization = "Welding & Metal Fabrication",
+                    Salary = 35000,
+                    CreatedDate = DateTime.UtcNow,
+                    CreatedBy = "System"
+                }
+            };
+            
+            context.Teachers.AddRange(teachers);
+        }
+    }
+    
+    private static async Task SeedBatchesAsync(ApplicationDbContext context)
+    {
+        if (!await context.Batches.AnyAsync())
+        {
+            // Get required data for batch creation
+            var citTrade = await context.Trades.FirstOrDefaultAsync(t => t.Code == "CIT");
+            var currentSession = await context.Sessions.FirstOrDefaultAsync(s => s.IsCurrentSession);
+            var morningTiming = await context.Timings.FirstOrDefaultAsync(t => t.Name == "Morning Shift");
+            var lab1Room = await context.Rooms.FirstOrDefaultAsync(r => r.RoomNumber == "LAB-01");
+            var primaryTeacher = await context.Teachers.FirstOrDefaultAsync(t => t.TeacherCode == "TCH-001");
+            
+            if (citTrade != null && currentSession != null)
+            {
+                var batch = new Batch
+                {
+                    BatchCode = "CIT-F24-01",
+                    BatchName = "Computer Information Technology - Fall 2024 Batch 1",
+                    TradeId = citTrade.Id,
+                    SessionId = currentSession.Id,
+                    TimingId = morningTiming?.Id,
+                    RoomId = lab1Room?.Id,
+                    PrimaryInstructorId = primaryTeacher?.Id,
+                    StartDate = DateTime.UtcNow.AddDays(-15),
+                    EndDate = DateTime.UtcNow.AddMonths(12),
+                    MaxStudents = 30,
+                    Status = "Active",
+                    Description = "First batch for Computer Information Technology in Fall 2024 session",
+                    CreatedDate = DateTime.UtcNow,
+                    CreatedBy = "System"
+                };
+                
+                context.Batches.Add(batch);
+                await context.SaveChangesAsync();
+                
+                // Assign the existing student to this batch
+                var student = await context.Students.FirstOrDefaultAsync(s => s.RegistrationNumber == "CIT-2025-001");
+                if (student != null)
+                {
+                    student.BatchId = batch.Id;
+                    student.ModifiedDate = DateTime.UtcNow;
+                    student.ModifiedBy = "System";
+                    await context.SaveChangesAsync();
+                }
+            }
         }
     }
 }

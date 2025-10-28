@@ -33,9 +33,20 @@ public interface IStudentService
     Task<List<StudentViewModel>> GetStudentsByBatchAsync(int batchId);
     Task<List<StudentViewModel>> GetStudentsByTradeAsync(int tradeId);
     Task<List<StudentViewModel>> GetStudentsBySessionAsync(int sessionId);
-    
     Task<int> GetTotalStudentsCountAsync();
+
+    // Provision Identity login for a student with default password and Student role
+    Task<bool> ProvisionStudentLoginAsync(int studentId);
+
+    // Bulk provision for all students without linked user accounts
+    Task<(int created, int skipped, int failed)> ProvisionAllUnlinkedStudentLoginsAsync();
+
     Task<int> GetActiveStudentsCountAsync();
     Task<Dictionary<string, int>> GetStudentsCountByStatusAsync();
     Task<Dictionary<string, int>> GetStudentsCountByTradeAsync();
+    
+    // Batch timing methods
+    Task<List<BatchTimingViewModel>> GetBatchTimingsAsync(int batchId);
+    Task<dynamic?> GetBatchByIdAsync(int batchId);
+    Task<dynamic?> GetTimingByIdAsync(int timingId);
 }

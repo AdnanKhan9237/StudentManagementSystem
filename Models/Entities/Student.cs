@@ -74,6 +74,7 @@ public class Student : BaseEntity
     public int TradeId { get; set; }
     public int SessionId { get; set; }
     public int? BatchId { get; set; }
+    public int? TimingId { get; set; }
     
     // User Link (for role-based access)
     public string? UserId { get; set; }
@@ -105,6 +106,9 @@ public class Student : BaseEntity
     [ForeignKey(nameof(BatchId))]
     public virtual Batch? Batch { get; set; }
     
+    [ForeignKey(nameof(TimingId))]
+    public virtual Timing? Timing { get; set; }
+    
     [ForeignKey(nameof(UserId))]
     public virtual ApplicationUser? User { get; set; }
     
@@ -113,4 +117,7 @@ public class Student : BaseEntity
     public virtual ICollection<FeeTransaction> FeeTransactions { get; set; } = new List<FeeTransaction>();
     public virtual ICollection<FeePayment> FeePayments { get; set; } = new List<FeePayment>();
     public virtual ICollection<Certificate> Certificates { get; set; } = new List<Certificate>();
+
+    // New: support multiple enrollments per student
+    public virtual ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
 }

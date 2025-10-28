@@ -28,6 +28,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<FeeStructure> FeeStructures { get; set; }
     public DbSet<StudentFeeAdjustment> StudentFeeAdjustments { get; set; }
     public DbSet<Teacher> Teachers { get; set; }
+    public DbSet<BatchTiming> BatchTimings { get; set; }
+
+    // New: Enrollment to support multi-session/trade per student
+    public DbSet<Enrollment> Enrollments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -144,6 +148,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasIndex(s => s.RegistrationNumber)
             .IsUnique();
 
+        // Enrollment: unique RegNo within a Session
+        builder.Entity<Enrollment>()
+            .HasIndex(e => new { e.SessionId, e.RegNo })
+            .IsUnique();
+
         builder.Entity<Student>()
             .HasIndex(s => s.CNIC);
 
@@ -179,17 +188,19 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasIndex(sfa => new { sfa.StudentId, sfa.FeeStructureId });
 
         // Configure cascade delete behaviors
-        builder.Entity<Student>()
-            .HasOne(s => s.Batch)
-            .WithMany()
-            .HasForeignKey(s => s.BatchId)
-            .OnDelete(DeleteBehavior.SetNull);
-
         builder.Entity<Attendance>()
             .HasOne(a => a.MarkedByUser)
             .WithMany()
             .HasForeignKey(a => a.MarkedBy)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // Attendance -> Enrollment (optional for backward compatibility)
+        builder.Entity<Attendance>()
+            .HasOne(a => a.Enrollment)
+            .WithMany(e => e.Attendances)
+            .HasForeignKey(a => a.EnrollmentId)
+            .OnDelete(DeleteBehavior.NoAction)
+            .IsRequired(false);
 
         builder.Entity<ExamResult>()
             .HasOne(er => er.EnteredByUser)
@@ -208,6 +219,28 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .WithMany()
             .HasForeignKey(c => c.IssuedBy)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // Configure Enrollment relationships
+        builder.Entity<Enrollment>()
+            .HasOne(e => e.Student)
+            .WithMany(s => s.Enrollments)
+            .HasForeignKey(e => e.StudentId)
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired();
+
+        builder.Entity<Enrollment>()
+            .HasOne(e => e.Session)
+            .WithMany(s => s.Enrollments)
+            .HasForeignKey(e => e.SessionId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired();
+
+        builder.Entity<Enrollment>()
+            .HasOne(e => e.Trade)
+            .WithMany(t => t.Enrollments)
+            .HasForeignKey(e => e.TradeId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired();
 
         // Configure Teacher-Batch relationships
         builder.Entity<Batch>()
@@ -228,18 +261,34 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasForeignKey(t => t.UserId)
             .OnDelete(DeleteBehavior.SetNull);
 
-        // Fix cascade delete cycles by setting some to NoAction
-        builder.Entity<Student>()
-            .HasOne(s => s.Session)
-            .WithMany()
-            .HasForeignKey(s => s.SessionId)
-            .OnDelete(DeleteBehavior.NoAction);
-
+        // Configure Student relationships to fix cascade delete cycles
         builder.Entity<Student>()
             .HasOne(s => s.Trade)
-            .WithMany()
+            .WithMany(t => t.Students)
             .HasForeignKey(s => s.TradeId)
-            .OnDelete(DeleteBehavior.NoAction);
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired();
+
+        builder.Entity<Student>()
+            .HasOne(s => s.Session)
+            .WithMany(sess => sess.Students)
+            .HasForeignKey(s => s.SessionId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired();
+
+        builder.Entity<Student>()
+            .HasOne(s => s.Batch)
+            .WithMany()
+            .HasForeignKey(s => s.BatchId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        builder.Entity<Student>()
+            .HasOne(s => s.Timing)
+            .WithMany()
+            .HasForeignKey(s => s.TimingId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
 
         // Configure relationships for new fee entities
         builder.Entity<FeeStructure>()
@@ -265,5 +314,23 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .WithMany(fs => fs.StudentFeeAdjustments)
             .HasForeignKey(sfa => sfa.FeeStructureId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Configure BatchTiming relationships
+        builder.Entity<BatchTiming>()
+            .HasOne(bt => bt.Batch)
+            .WithMany()
+            .HasForeignKey(bt => bt.BatchId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<BatchTiming>()
+            .HasOne(bt => bt.Timing)
+            .WithMany()
+            .HasForeignKey(bt => bt.TimingId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Unique constraint for batch-timing combination
+        builder.Entity<BatchTiming>()
+            .HasIndex(bt => new { bt.BatchId, bt.TimingId })
+            .IsUnique();
     }
 }

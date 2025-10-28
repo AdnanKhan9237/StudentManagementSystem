@@ -1,9 +1,6 @@
 @model AttendanceIndexViewModel
 @{
     ViewData["Title"] = "Attendance Management";
-    Layout = "~/Views/Shared/_ModernLayout.cshtml";
-}
-    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <div class="container-fluid">
@@ -201,30 +198,16 @@
     }
 </div>
 
-@section Scripts {
-    <script>
-        $(document).ready(function() {
-            // Add hover effects to batch cards
-            $('.card.border-left-primary').hover(
-                function() {
-                    $(this).addClass('shadow-sm');
-                },
-                function() {
-                    $(this).removeClass('shadow-sm');
-                }
-            );
-        });
-    </script>
-}
-
 @section Styles {
     <style>
         .border-left-primary {
             border-left: 4px solid #007bff !important;
+            transition: all 0.2s ease-in-out;
         }
         
-        .card:hover {
-            transition: all 0.2s ease-in-out;
+        .border-left-primary:hover {
+            box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,.075);
+            transform: translateY(-2px);
         }
         
         .btn-group-vertical .btn {

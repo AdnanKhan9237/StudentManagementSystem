@@ -43,6 +43,9 @@ public class ApplicationUser : IdentityUser
     public DateTime? LastLoginDate { get; set; }
     
     public bool IsActive { get; set; } = true;
+
+    // Require password change on first login (for provisioned accounts)
+    public bool MustChangePassword { get; set; } = false;
     
     [MaxLength(50)]
     public string? Department { get; set; }

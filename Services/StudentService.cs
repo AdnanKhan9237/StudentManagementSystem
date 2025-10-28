@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Identity;
 using StudentManagementSystem.Data;
 using StudentManagementSystem.Interfaces;
 using StudentManagementSystem.ViewModels;
@@ -11,11 +12,15 @@ public class StudentService : IStudentService
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<StudentService> _logger;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly RoleManager<IdentityRole> _roleManager;
 
-    public StudentService(ApplicationDbContext context, ILogger<StudentService> logger)
+    public StudentService(ApplicationDbContext context, ILogger<StudentService> logger, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
     {
         _context = context;
         _logger = logger;
+        _userManager = userManager;
+        _roleManager = roleManager;
     }
 
     public async Task<StudentListViewModel> GetStudentsAsync(int pageNumber, int pageSize, string searchTerm = "",
@@ -392,6 +397,34 @@ public class StudentService : IStudentService
             student.BatchId = batchId;
             student.ModifiedDate = DateTime.UtcNow;
 
+            // Ensure Enrollment exists for this student's session/trade and link to batch
+            var enrollment = await _context.Enrollments
+                .FirstOrDefaultAsync(e => e.StudentId == studentId 
+                                       && e.SessionId == batch.SessionId 
+                                       && e.TradeId == batch.TradeId);
+            if (enrollment == null)
+            {
+                enrollment = new Enrollment
+                {
+                    StudentId = studentId,
+                    SessionId = batch.SessionId,
+                    TradeId = batch.TradeId,
+                    BatchId = batchId,
+                    TimingId = batch.TimingId,
+                    RegNo = student.RegistrationNumber,
+                    AdmissionDate = DateTime.UtcNow,
+                    Status = "Active",
+                    CreatedDate = DateTime.UtcNow
+                };
+                _context.Enrollments.Add(enrollment);
+            }
+            else
+            {
+                enrollment.BatchId = batchId;
+                enrollment.TimingId = batch.TimingId;
+                enrollment.ModifiedDate = DateTime.UtcNow;
+            }
+
             // Update batch enrollment count
             batch.CurrentEnrollment = currentEnrollment + 1;
 
@@ -494,9 +527,128 @@ public class StudentService : IStudentService
             .ToListAsync();
     }
 
+    public async Task<bool> ProvisionStudentLoginAsync(int studentId)
+    {
+        var student = await _context.Students.FirstOrDefaultAsync(s => s.Id == studentId && !s.IsDeleted);
+        if (student == null) return false;
+
+        // If already linked to a user, ensure role and MustChangePassword
+        if (!string.IsNullOrEmpty(student.UserId))
+        {
+            var existing = await _userManager.FindByIdAsync(student.UserId);
+            if (existing == null) return false;
+            existing.MustChangePassword = true;
+            await _userManager.UpdateAsync(existing);
+            return true;
+        }
+
+        // Create user with username=RegistrationNumber and default password
+        var user = new ApplicationUser
+        {
+            UserName = student.RegistrationNumber,
+            Email = student.Email ?? $"{student.RegistrationNumber}@noemail.local",
+            FirstName = student.FirstName,
+            LastName = student.LastName,
+            PhoneNumber = student.PhoneNumber,
+            EmailConfirmed = true,
+            IsActive = true,
+            MustChangePassword = true,
+            CreatedDate = DateTime.UtcNow,
+            CreatedBy = "System"
+        };
+
+        // Ensure Student role exists
+        if (!await _roleManager.RoleExistsAsync(Constants.UserRoles.Student))
+        {
+            await _roleManager.CreateAsync(new IdentityRole(Constants.UserRoles.Student));
+        }
+
+var result = await _userManager.CreateAsync(user, "Sostti123+");
+        if (!result.Succeeded)
+        {
+            _logger.LogWarning("Failed to create user for student {StudentId}: {Errors}", studentId, string.Join(", ", result.Errors.Select(e => e.Description)));
+            return false;
+        }
+
+        await _userManager.AddToRoleAsync(user, Constants.UserRoles.Student);
+
+        // Link to student
+        student.UserId = user.Id;
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
     public async Task<int> GetTotalStudentsCountAsync()
     {
         return await _context.Students.CountAsync(s => !s.IsDeleted);
+    }
+
+    public async Task<(int created, int skipped, int failed)> ProvisionAllUnlinkedStudentLoginsAsync()
+    {
+        int created = 0, skipped = 0, failed = 0;
+
+        // Ensure Student role exists
+        if (!await _roleManager.RoleExistsAsync(Constants.UserRoles.Student))
+        {
+            await _roleManager.CreateAsync(new IdentityRole(Constants.UserRoles.Student));
+        }
+
+        var candidates = await _context.Students
+            .Where(s => !s.IsDeleted && s.UserId == null && (s.CNIC != null || s.PhoneNumber != null))
+            .ToListAsync();
+
+        foreach (var s in candidates)
+        {
+            try
+            {
+                var userName = !string.IsNullOrWhiteSpace(s.CNIC) ? s.CNIC! : (s.PhoneNumber ?? string.Empty);
+                if (string.IsNullOrWhiteSpace(userName))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                // Skip if username already exists
+                var existingUser = await _userManager.FindByNameAsync(userName);
+                if (existingUser != null)
+                {
+                    skipped++;
+                    continue;
+                }
+
+                var user = new ApplicationUser
+                {
+                    UserName = userName,
+                    Email = s.Email ?? $"{userName}@noemail.local",
+                    FirstName = s.FirstName,
+                    LastName = s.LastName,
+                    PhoneNumber = s.PhoneNumber,
+                    EmailConfirmed = true,
+                    IsActive = true,
+                    MustChangePassword = true,
+                    CreatedDate = DateTime.UtcNow,
+                    CreatedBy = "System"
+                };
+
+                var result = await _userManager.CreateAsync(user, "Sostti123+");
+                if (!result.Succeeded)
+                {
+                    failed++;
+                    continue;
+                }
+
+                await _userManager.AddToRoleAsync(user, Constants.UserRoles.Student);
+                s.UserId = user.Id;
+                created++;
+            }
+            catch
+            {
+                failed++;
+            }
+        }
+
+        await _context.SaveChangesAsync();
+        return (created, skipped, failed);
     }
 
     public async Task<int> GetActiveStudentsCountAsync()
@@ -708,5 +860,69 @@ public class StudentService : IStudentService
         model.Batches = new SelectList(batches, "Id", "BatchName", model.BatchId);
         model.GenderOptions = new SelectList(genderOptions, "Value", "Text", model.Gender);
         model.StatusOptions = new SelectList(statusOptions, "Value", "Text", model.Status);
+    }
+
+    public async Task<List<BatchTimingViewModel>> GetBatchTimingsAsync(int batchId)
+    {
+        var batchTimings = await _context.BatchTimings
+            .Include(bt => bt.Timing)
+            .Where(bt => bt.BatchId == batchId && !bt.IsDeleted)
+            .ToListAsync();
+
+        var result = new List<BatchTimingViewModel>();
+
+        foreach (var bt in batchTimings)
+        {
+            // Count current students enrolled in this batch with this timing
+            var currentStudents = await _context.Students
+                .CountAsync(s => s.BatchId == batchId && s.TimingId == bt.TimingId && !s.IsDeleted);
+
+            result.Add(new BatchTimingViewModel
+            {
+                Id = bt.Id,
+                BatchId = bt.BatchId,
+                TimingId = bt.TimingId,
+                TimingName = bt.Timing.Name,
+                TimingDescription = $"{bt.Timing.StartTime:hh\\:mm} - {bt.Timing.EndTime:hh\\:mm} ({bt.Timing.Name})",
+                MaxStudents = bt.MaxStudents,
+                CurrentStudents = currentStudents
+            });
+        }
+
+        return result;
+    }
+
+    public async Task<dynamic?> GetBatchByIdAsync(int batchId)
+    {
+        var batch = await _context.Batches
+            .Where(b => b.Id == batchId && !b.IsDeleted)
+            .Select(b => new
+            {
+                b.Id,
+                b.BatchCode,
+                b.BatchName,
+                b.TimingId,
+                b.MaxStudents,
+                b.CurrentEnrollment
+            })
+            .FirstOrDefaultAsync();
+
+        return batch;
+    }
+
+    public async Task<dynamic?> GetTimingByIdAsync(int timingId)
+    {
+        var timing = await _context.Timings
+            .Where(t => t.Id == timingId && !t.IsDeleted)
+            .Select(t => new
+            {
+                t.Id,
+                t.Name,
+                t.StartTime,
+                t.EndTime
+            })
+            .FirstOrDefaultAsync();
+
+        return timing;
     }
 }

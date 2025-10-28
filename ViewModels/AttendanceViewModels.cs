@@ -38,7 +38,8 @@ public class TakeAttendanceViewModel
 public class StudentAttendanceViewModel
 {
     public int StudentId { get; set; }
-    public string RegistrationNumber { get; set; } = string.Empty;
+    public int? EnrollmentId { get; set; } // New: selected enrollment for this batch
+    public string RegistrationNumber { get; set; } = string.Empty; // Enrollment RegNo
     public string StudentName { get; set; } = string.Empty;
     
     [Required(ErrorMessage = "Attendance status is required")]
@@ -74,7 +75,8 @@ public class ViewAttendanceViewModel
 public class AttendanceRecordViewModel
 {
     public int StudentId { get; set; }
-    public string RegistrationNumber { get; set; } = string.Empty;
+    public int? EnrollmentId { get; set; }
+    public string RegistrationNumber { get; set; } = string.Empty; // Enrollment RegNo
     public string StudentName { get; set; } = string.Empty;
     public DateTime Date { get; set; }
     public string Status { get; set; } = string.Empty;

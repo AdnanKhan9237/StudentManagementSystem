@@ -99,6 +99,28 @@ public class AttendanceReportListViewModel
     public List<Batch> Batches { get; set; } = new();
 }
 
+// Enrollment Report ViewModels
+public class EnrollmentReportItem
+{
+    public int EnrollmentId { get; set; }
+    public string RegNo { get; set; } = string.Empty;
+    public string StudentName { get; set; } = string.Empty;
+    public string SessionName { get; set; } = string.Empty;
+    public string TradeName { get; set; } = string.Empty;
+    public string BatchCode { get; set; } = string.Empty;
+    public DateTime AdmissionDate { get; set; }
+    public string Status { get; set; } = string.Empty;
+}
+
+public class EnrollmentReportListViewModel
+{
+    public List<EnrollmentReportItem> Enrollments { get; set; } = new();
+    public int? SessionId { get; set; }
+    public int? TradeId { get; set; }
+    public List<Session> Sessions { get; set; } = new();
+    public List<Trade> Trades { get; set; } = new();
+}
+
 // Fee Report ViewModels
 public class FeeReportViewModel
 {

@@ -261,6 +261,9 @@ namespace StudentManagementSystem.Migrations
                     b.Property<DateTime?>("ModifiedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("MustChangePassword")
+                        .HasColumnType("bit");
+
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
@@ -330,6 +333,9 @@ namespace StudentManagementSystem.Migrations
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("EnrollmentId")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -370,6 +376,8 @@ namespace StudentManagementSystem.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("BatchId");
+
+                    b.HasIndex("EnrollmentId");
 
                     b.HasIndex("MarkedBy");
 
@@ -540,6 +548,53 @@ namespace StudentManagementSystem.Migrations
                     b.ToTable("BatchStudents");
                 });
 
+            modelBuilder.Entity("StudentManagementSystem.Models.Entities.BatchTiming", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BatchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("MaxStudents")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("TimingId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TimingId");
+
+                    b.HasIndex("BatchId", "TimingId")
+                        .IsUnique();
+
+                    b.ToTable("BatchTimings");
+                });
+
             modelBuilder.Entity("StudentManagementSystem.Models.Entities.Certificate", b =>
                 {
                     b.Property<int>("Id")
@@ -635,6 +690,82 @@ namespace StudentManagementSystem.Migrations
                     b.HasIndex("TradeId");
 
                     b.ToTable("Certificates");
+                });
+
+            modelBuilder.Entity("StudentManagementSystem.Models.Entities.Enrollment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AdmissionDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("BatchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RegNo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("SessionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("StudentId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TimingId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TradeId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatchId");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("TimingId");
+
+                    b.HasIndex("TradeId");
+
+                    b.HasIndex("SessionId", "RegNo")
+                        .IsUnique();
+
+                    b.ToTable("Enrollments");
                 });
 
             modelBuilder.Entity("StudentManagementSystem.Models.Entities.Exam", b =>
@@ -1312,9 +1443,6 @@ namespace StudentManagementSystem.Migrations
                     b.Property<int>("SessionId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("SessionId1")
-                        .HasColumnType("int");
-
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -1325,14 +1453,14 @@ namespace StudentManagementSystem.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<int?>("TimingId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("TotalFee")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("TradeId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("TradeId1")
                         .HasColumnType("int");
 
                     b.Property<string>("UserId")
@@ -1349,11 +1477,9 @@ namespace StudentManagementSystem.Migrations
 
                     b.HasIndex("SessionId");
 
-                    b.HasIndex("SessionId1");
+                    b.HasIndex("TimingId");
 
                     b.HasIndex("TradeId");
-
-                    b.HasIndex("TradeId1");
 
                     b.HasIndex("UserId");
 
@@ -1791,6 +1917,11 @@ namespace StudentManagementSystem.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("StudentManagementSystem.Models.Entities.Enrollment", "Enrollment")
+                        .WithMany("Attendances")
+                        .HasForeignKey("EnrollmentId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("StudentManagementSystem.Models.Entities.ApplicationUser", "MarkedByUser")
                         .WithMany()
                         .HasForeignKey("MarkedBy")
@@ -1807,6 +1938,8 @@ namespace StudentManagementSystem.Migrations
                         .HasForeignKey("TeacherId");
 
                     b.Navigation("Batch");
+
+                    b.Navigation("Enrollment");
 
                     b.Navigation("MarkedByUser");
 
@@ -1881,6 +2014,25 @@ namespace StudentManagementSystem.Migrations
                     b.Navigation("Student");
                 });
 
+            modelBuilder.Entity("StudentManagementSystem.Models.Entities.BatchTiming", b =>
+                {
+                    b.HasOne("StudentManagementSystem.Models.Entities.Batch", "Batch")
+                        .WithMany()
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("StudentManagementSystem.Models.Entities.Timing", "Timing")
+                        .WithMany()
+                        .HasForeignKey("TimingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Batch");
+
+                    b.Navigation("Timing");
+                });
+
             modelBuilder.Entity("StudentManagementSystem.Models.Entities.Certificate", b =>
                 {
                     b.HasOne("StudentManagementSystem.Models.Entities.ApplicationUser", "IssuedByUser")
@@ -1911,6 +2063,45 @@ namespace StudentManagementSystem.Migrations
                     b.Navigation("Session");
 
                     b.Navigation("Student");
+
+                    b.Navigation("Trade");
+                });
+
+            modelBuilder.Entity("StudentManagementSystem.Models.Entities.Enrollment", b =>
+                {
+                    b.HasOne("StudentManagementSystem.Models.Entities.Batch", "Batch")
+                        .WithMany()
+                        .HasForeignKey("BatchId");
+
+                    b.HasOne("StudentManagementSystem.Models.Entities.Session", "Session")
+                        .WithMany("Enrollments")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("StudentManagementSystem.Models.Entities.Student", "Student")
+                        .WithMany("Enrollments")
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("StudentManagementSystem.Models.Entities.Timing", "Timing")
+                        .WithMany()
+                        .HasForeignKey("TimingId");
+
+                    b.HasOne("StudentManagementSystem.Models.Entities.Trade", "Trade")
+                        .WithMany("Enrollments")
+                        .HasForeignKey("TradeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Batch");
+
+                    b.Navigation("Session");
+
+                    b.Navigation("Student");
+
+                    b.Navigation("Timing");
 
                     b.Navigation("Trade");
                 });
@@ -2014,24 +2205,21 @@ namespace StudentManagementSystem.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("StudentManagementSystem.Models.Entities.Session", "Session")
-                        .WithMany()
+                        .WithMany("Students")
                         .HasForeignKey("SessionId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("StudentManagementSystem.Models.Entities.Session", null)
-                        .WithMany("Students")
-                        .HasForeignKey("SessionId1");
+                    b.HasOne("StudentManagementSystem.Models.Entities.Timing", "Timing")
+                        .WithMany()
+                        .HasForeignKey("TimingId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("StudentManagementSystem.Models.Entities.Trade", "Trade")
-                        .WithMany()
-                        .HasForeignKey("TradeId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("StudentManagementSystem.Models.Entities.Trade", null)
                         .WithMany("Students")
-                        .HasForeignKey("TradeId1");
+                        .HasForeignKey("TradeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("StudentManagementSystem.Models.Entities.ApplicationUser", "User")
                         .WithMany()
@@ -2040,6 +2228,8 @@ namespace StudentManagementSystem.Migrations
                     b.Navigation("Batch");
 
                     b.Navigation("Session");
+
+                    b.Navigation("Timing");
 
                     b.Navigation("Trade");
 
@@ -2089,6 +2279,11 @@ namespace StudentManagementSystem.Migrations
                     b.Navigation("Students");
                 });
 
+            modelBuilder.Entity("StudentManagementSystem.Models.Entities.Enrollment", b =>
+                {
+                    b.Navigation("Attendances");
+                });
+
             modelBuilder.Entity("StudentManagementSystem.Models.Entities.Exam", b =>
                 {
                     b.Navigation("ExamResults");
@@ -2108,6 +2303,8 @@ namespace StudentManagementSystem.Migrations
                 {
                     b.Navigation("Batches");
 
+                    b.Navigation("Enrollments");
+
                     b.Navigation("Exams");
 
                     b.Navigation("Students");
@@ -2118,6 +2315,8 @@ namespace StudentManagementSystem.Migrations
                     b.Navigation("Attendances");
 
                     b.Navigation("Certificates");
+
+                    b.Navigation("Enrollments");
 
                     b.Navigation("ExamResults");
 
@@ -2143,6 +2342,8 @@ namespace StudentManagementSystem.Migrations
             modelBuilder.Entity("StudentManagementSystem.Models.Entities.Trade", b =>
                 {
                     b.Navigation("Batches");
+
+                    b.Navigation("Enrollments");
 
                     b.Navigation("Students");
                 });
