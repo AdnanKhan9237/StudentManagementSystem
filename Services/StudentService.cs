@@ -41,7 +41,7 @@ public class StudentService : IStudentService
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             query = query.Where(s => s.FirstName.Contains(searchTerm) ||
-                                   s.LastName.Contains(searchTerm) ||
+                                   (s.LastName != null && s.LastName.Contains(searchTerm)) ||
                                    s.RegistrationNumber.Contains(searchTerm) ||
                                    (s.CNIC != null && s.CNIC.Contains(searchTerm)));
         }
@@ -152,7 +152,7 @@ public class StudentService : IStudentService
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             query = query.Where(s => s.FirstName.Contains(searchTerm) ||
-                                   s.LastName.Contains(searchTerm) ||
+                                   (s.LastName != null && s.LastName.Contains(searchTerm)) ||
                                    s.RegistrationNumber.Contains(searchTerm));
         }
 

@@ -31,33 +31,36 @@ public class DashboardController : Controller
             
             var viewModel = new DashboardViewModel();
         
-        // Set dashboard type based on role
-        if (userRoles.Contains(UserRoles.SuperAdmin))
-        {
-            viewModel.DashboardType = "SuperAdmin";
-            viewModel.TotalUsers = await _userManager.Users.CountAsync();
-        }
-        else if (userRoles.Contains(UserRoles.Admin))
-        {
-            viewModel.DashboardType = "Admin";
-            viewModel.TotalUsers = await _userManager.Users.CountAsync();
-        }
-        else if (userRoles.Contains(UserRoles.Teacher))
-        {
-            return await TeacherDashboard();
-        }
-        else if (userRoles.Contains(UserRoles.Accounts))
-        {
-            viewModel.DashboardType = "Accounts";
-        }
-        else if (userRoles.Contains(UserRoles.Student))
-        {
-            return await StudentDashboard();
-        }
-        else
-        {
-            viewModel.DashboardType = "Default";
-        }
+            // Set dashboard type based on role priority (for users with multiple roles)
+            // Priority order: SuperAdmin > Admin > Accounts > Teacher > Student
+            // This ensures consistent dashboard display regardless of role assignment order
+            
+            if (userRoles.Contains(UserRoles.SuperAdmin))
+            {
+                viewModel.DashboardType = "SuperAdmin";
+                viewModel.TotalUsers = await _userManager.Users.CountAsync();
+            }
+            else if (userRoles.Contains(UserRoles.Admin))
+            {
+                viewModel.DashboardType = "Admin";
+                viewModel.TotalUsers = await _userManager.Users.CountAsync();
+            }
+            else if (userRoles.Contains(UserRoles.Accounts))
+            {
+                viewModel.DashboardType = "Accounts";
+            }
+            else if (userRoles.Contains(UserRoles.Teacher))
+            {
+                return await TeacherDashboard();
+            }
+            else if (userRoles.Contains(UserRoles.Student))
+            {
+                return await StudentDashboard();
+            }
+            else
+            {
+                viewModel.DashboardType = "Default";
+            }
 
         // Basic Statistics (visible to most roles)
         viewModel.TotalStudents = await _context.Students.CountAsync(s => !s.IsDeleted);

@@ -355,7 +355,7 @@ StudentName = $"{(a.Student != null ? a.Student.FirstName : string.Empty)} {(a.S
             .Select(g => new StudentAttendanceReportViewModel
             {
                 StudentId = g.Key,
-                RegistrationNumber = g.First().Enrollment != null ? g.First().Enrollment.RegNo : g.First().Student.RegistrationNumber,
+                RegistrationNumber = g.First().Enrollment != null ? g.First().Enrollment!.RegNo : g.First().Student.RegistrationNumber,
                 StudentName = $"{g.First().Student.FirstName} {g.First().Student.LastName}",
                 TotalDays = g.Count(),
                 PresentDays = g.Count(a => a.Status == "Present"),

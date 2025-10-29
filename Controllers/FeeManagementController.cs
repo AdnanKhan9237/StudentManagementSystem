@@ -36,7 +36,7 @@ public class FeeManagementController : Controller
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             query = query.Where(s => s.FirstName.Contains(searchTerm) ||
-                                   s.LastName.Contains(searchTerm) ||
+                                   (s.LastName != null && s.LastName.Contains(searchTerm)) ||
                                    s.RegistrationNumber.Contains(searchTerm));
         }
 

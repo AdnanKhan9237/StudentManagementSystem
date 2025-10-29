@@ -81,8 +81,17 @@ public class ChangePasswordModel : PageModel
             return Page();
         }
 
+        // Clear the MustChangePassword flag after successful password change
+        if (user.MustChangePassword)
+        {
+            user.MustChangePassword = false;
+            await _userManager.UpdateAsync(user);
+        }
+
         await _signInManager.RefreshSignInAsync(user);
 
+        TempData["SuccessMessage"] = "Your password has been changed successfully!";
+        
         // Redirect to Dashboard after successful password change
         return LocalRedirect(Url.Content("~/Dashboard/Index"));
     }

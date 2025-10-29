@@ -153,7 +153,7 @@ namespace StudentManagementSystem.Areas.Identity.Pages.Account
                     var candidate = await _db.Students.FirstOrDefaultAsync(s => !s.IsDeleted && (s.CNIC == Input.Email || s.PhoneNumber == Input.Email));
                     if (candidate != null && string.IsNullOrEmpty(candidate.UserId))
                     {
-                        if (Input.Password == "sostti123+")
+                        if (Input.Password == "Sostti123+")
                         {
                             var userName = !string.IsNullOrWhiteSpace(candidate.CNIC) ? candidate.CNIC! : (candidate.PhoneNumber ?? candidate.Email ?? Guid.NewGuid().ToString("N"));
                             var newUser = new ApplicationUser
@@ -161,8 +161,8 @@ namespace StudentManagementSystem.Areas.Identity.Pages.Account
                                 UserName = userName,
                                 Email = candidate.Email ?? $"{userName}@noemail.local",
                                 FirstName = candidate.FirstName,
-                                LastName = candidate.LastName,
-                                PhoneNumber = candidate.PhoneNumber,
+                                LastName = candidate.LastName ?? string.Empty,
+                                PhoneNumber = candidate.PhoneNumber!, // Added null-forgiving operator
                                 EmailConfirmed = true,
                                 IsActive = true,
                                 MustChangePassword = true,
@@ -214,12 +214,34 @@ namespace StudentManagementSystem.Areas.Identity.Pages.Account
 
                 // This doesn't count login failures towards account lockout
                 // To enable password failures to trigger account lockout, set lockoutOnFailure: true
-                var result = await _signInManager.PasswordSignInAsync(user.UserName!, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+                // isPersistent set to false since remember me checkbox removed from UI
+                var result = await _signInManager.PasswordSignInAsync(user.UserName!, Input.Password, isPersistent: false, lockoutOnFailure: false);
                 if (result.Succeeded)
                 {
                     _logger.LogInformation("User logged in.");
 
-                    // Force password change if required
+                    // Check if user is a student
+                    var userRoles = await _userManager.GetRolesAsync(user);
+                    var isStudent = userRoles.Contains(UserRoles.Student);
+                    _logger.LogInformation($"User {user.UserName} has roles: {string.Join(", ", userRoles)}. IsStudent: {isStudent}");
+
+                    // Force password change if using default password (for students)
+                    const string defaultPassword = "Sostti123+";
+                    var isDefaultPassword = string.Equals(Input.Password, defaultPassword, StringComparison.Ordinal);
+                    _logger.LogInformation($"Password check - IsStudent: {isStudent}, IsDefaultPassword: {isDefaultPassword}");
+                    
+                    if (isStudent && isDefaultPassword)
+                    {
+                        _logger.LogInformation("Redirecting student to change password (using default password)");
+                        // Update MustChangePassword flag
+                        user.MustChangePassword = true;
+                        await _userManager.UpdateAsync(user);
+                        
+                        TempData["InfoMessage"] = "You are using the default password. Please change your password before continuing.";
+                        return RedirectToPage("/Account/Manage/ChangePassword", new { area = "Identity" });
+                    }
+
+                    // Force password change if required (for other scenarios)
                     if (user.MustChangePassword)
                     {
                         TempData["InfoMessage"] = "Please change your password before continuing.";

@@ -14,7 +14,7 @@ public class CertificationFeeConfig : BaseEntity
     [MaxLength(500)]
     public string? Description { get; set; }
     
-    public bool IsActive { get; set; } = true;
+    public new bool IsActive { get; set; } = true;
     
     public int DisplayOrder { get; set; }
 }

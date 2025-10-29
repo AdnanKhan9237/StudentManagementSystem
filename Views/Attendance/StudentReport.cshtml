@@ -1,7 +1,7 @@
 @model StudentAttendanceReportViewModel
 @{
     ViewData["Title"] = $"Attendance - {Model.StudentName}";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    Layout = "~/Views/Shared/_ModernLayout.cshtml";
 }
 
 <div class="container-fluid">
@@ -133,8 +133,8 @@
                                                 @r.Status
                                             </span>
                                         </td>
-                                        <td>@(r.TimeIn.HasValue ? r.TimeIn.Value.ToString(@"hh\\:mm") : "-")</td>
-                                        <td>@(r.TimeOut.HasValue ? r.TimeOut.Value.ToString(@"hh\\:mm") : "-")</td>
+                                        <td>@(r.TimeIn.HasValue ? r.TimeIn.Value.ToString(@"hh\:mm") : "-")</td>
+                                        <td>@(r.TimeOut.HasValue ? r.TimeOut.Value.ToString(@"hh\:mm") : "-")</td>
                                         <td>@(string.IsNullOrWhiteSpace(r.Remarks) ? "-" : r.Remarks)</td>
                                         <td>@r.MarkedBy</td>
                                     </tr>
