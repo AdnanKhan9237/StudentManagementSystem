@@ -60,6 +60,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQXR0ZW5kYW5jZVxJbmRleC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/Administrator/Documents/StudentManagementSystem/StudentManagementSystem/Views/Attendance/SelectTiming.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQXR0ZW5kYW5jZVxTZWxlY3RUaW1pbmcuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/Administrator/Documents/StudentManagementSystem/StudentManagementSystem/Views/Attendance/StudentReport.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQXR0ZW5kYW5jZVxTdHVkZW50UmVwb3J0LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
@@ -108,6 +112,18 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRGFzaGJvYXJkXFRlYWNoZXJEYXNoYm9hcmQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/Administrator/Documents/StudentManagementSystem/StudentManagementSystem/Views/FeeManagement/ApplyCertificationFee.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRmVlTWFuYWdlbWVudFxBcHBseUNlcnRpZmljYXRpb25GZWUuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Administrator/Documents/StudentManagementSystem/StudentManagementSystem/Views/FeeManagement/CertificationFees.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRmVlTWFuYWdlbWVudFxDZXJ0aWZpY2F0aW9uRmVlcy5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Administrator/Documents/StudentManagementSystem/StudentManagementSystem/Views/FeeManagement/CollectCertificationFee.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRmVlTWFuYWdlbWVudFxDb2xsZWN0Q2VydGlmaWNhdGlvbkZlZS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/Administrator/Documents/StudentManagementSystem/StudentManagementSystem/Views/FeeManagement/CollectFee.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRmVlTWFuYWdlbWVudFxDb2xsZWN0RmVlLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
@@ -124,12 +140,20 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRmVlTWFuYWdlbWVudFxSZXBvcnRzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/Administrator/Documents/StudentManagementSystem/StudentManagementSystem/Views/FeeManagement/UpdateCertificationStatus.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRmVlTWFuYWdlbWVudFxVcGRhdGVDZXJ0aWZpY2F0aW9uU3RhdHVzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/Administrator/Documents/StudentManagementSystem/StudentManagementSystem/Views/Home/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxJbmRleC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/Administrator/Documents/StudentManagementSystem/StudentManagementSystem/Views/Home/Privacy.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxQcml2YWN5LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Administrator/Documents/StudentManagementSystem/StudentManagementSystem/Views/Reports/AcademicReport.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUmVwb3J0c1xBY2FkZW1pY1JlcG9ydC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/Administrator/Documents/StudentManagementSystem/StudentManagementSystem/Views/Reports/AttendanceReport.cshtml]
@@ -142,6 +166,10 @@ build_metadata.AdditionalFiles.CssScope =
 
 [C:/Users/Administrator/Documents/StudentManagementSystem/StudentManagementSystem/Views/Reports/EnrollmentReport.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUmVwb3J0c1xFbnJvbGxtZW50UmVwb3J0LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Administrator/Documents/StudentManagementSystem/StudentManagementSystem/Views/Reports/FacilityReport.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUmVwb3J0c1xGYWNpbGl0eVJlcG9ydC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/Administrator/Documents/StudentManagementSystem/StudentManagementSystem/Views/Reports/FeeReport.cshtml]
@@ -230,6 +258,10 @@ build_metadata.AdditionalFiles.CssScope =
 
 [C:/Users/Administrator/Documents/StudentManagementSystem/StudentManagementSystem/Views/Students/Edit.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU3R1ZGVudHNcRWRpdC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Administrator/Documents/StudentManagementSystem/StudentManagementSystem/Views/Students/ImportCsv.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU3R1ZGVudHNcSW1wb3J0Q3N2LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/Administrator/Documents/StudentManagementSystem/StudentManagementSystem/Views/Students/Index.cshtml]

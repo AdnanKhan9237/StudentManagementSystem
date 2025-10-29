@@ -37,9 +37,63 @@ public class AttendanceController : Controller
         return View(model);
     }
 
-// GET: Attendance/TakeAttendance/5?date=2024-01-01
+    // GET: Attendance/SelectTiming/5?date=2024-01-01
     [Authorize(Roles = $"{UserRoles.SuperAdmin},{UserRoles.Teacher}")]
-    public async Task<IActionResult> TakeAttendance(int batchId, DateTime? date = null)
+    public async Task<IActionResult> SelectTiming(int batchId, DateTime? date = null)
+    {
+        date ??= DateTime.Today;
+
+        var batch = await _context.Batches
+            .Include(b => b.Trade)
+            .Include(b => b.Session)
+            .FirstOrDefaultAsync(b => b.Id == batchId);
+
+        if (batch == null)
+        {
+            return NotFound();
+        }
+
+        // Get all timings for this batch (students assigned to different timings)
+        var timingsWithStudents = await _context.Students
+            .Where(s => s.BatchId == batchId && s.TimingId.HasValue && !s.IsDeleted)
+            .GroupBy(s => s.TimingId)
+            .Select(g => new
+            {
+                TimingId = g.Key!.Value,
+                StudentCount = g.Count()
+            })
+            .ToListAsync();
+
+        var timingIds = timingsWithStudents.Select(t => t.TimingId).ToList();
+        var timings = await _context.Timings
+            .Where(t => timingIds.Contains(t.Id))
+            .OrderBy(t => t.StartTime)
+            .ToListAsync();
+
+        var model = new
+        {
+            BatchId = batchId,
+            BatchName = batch.BatchName,
+            BatchCode = batch.BatchCode,
+            TradeName = batch.Trade?.NameEnglish,
+            SessionName = batch.Session?.Name,
+            Date = date.Value,
+            Timings = timings.Select(t => new
+            {
+                TimingId = t.Id,
+                TimingName = $"{t.Name} ({t.StartTime:hh\\:mm} - {t.EndTime:hh\\:mm})",
+                StartTime = t.StartTime,
+                EndTime = t.EndTime,
+                StudentCount = timingsWithStudents.FirstOrDefault(ts => ts.TimingId == t.Id)?.StudentCount ?? 0
+            }).ToList()
+        };
+
+        return View(model);
+    }
+
+// GET: Attendance/TakeAttendance/5?timingId=1&date=2024-01-01
+    [Authorize(Roles = $"{UserRoles.SuperAdmin},{UserRoles.Teacher}")]
+    public async Task<IActionResult> TakeAttendance(int batchId, int? timingId = null, DateTime? date = null)
     {
         date ??= DateTime.Today;
 
@@ -62,45 +116,62 @@ public class AttendanceController : Controller
             return Forbid("You can only mark attendance for your assigned batches.");
         }
 
-        // Get students enrolled in this batch
-        var students = await _context.Students
-            .Where(s => s.BatchId == batchId && !s.IsDeleted)
+        // Get students enrolled in this batch and timing
+        var studentsQuery = _context.Students
+            .Where(s => s.BatchId == batchId && !s.IsDeleted);
+        
+        // Filter by timing if specified
+        if (timingId.HasValue)
+        {
+            studentsQuery = studentsQuery.Where(s => s.TimingId == timingId.Value);
+        }
+        
+        var students = await studentsQuery
             .OrderBy(s => s.RegistrationNumber)
             .ToListAsync();
 
-        _logger.LogInformation("Batch {BatchId}: Found {Count} students", batchId, students.Count);
+        _logger.LogInformation("Batch {BatchId}, Timing {TimingId}: Found {Count} students", batchId, timingId, students.Count);
 
-        // Prefetch enrollments for this batch's session/trade
-        var enrollmentsMap = await _context.Enrollments
-            .AsNoTracking()
-            .Where(e => students.Select(s => s.Id).Contains(e.StudentId)
-                         && e.SessionId == batch.SessionId
-                         && e.TradeId == batch.TradeId)
-            .ToDictionaryAsync(e => e.StudentId, e => e);
+        // Get timing information if timingId is provided
+        Timing? timing = null;
+        if (timingId.HasValue)
+        {
+            timing = await _context.Timings.FindAsync(timingId.Value);
+        }
+        else
+        {
+            timing = batch.Timing;
+        }
 
-        // Get existing attendance for this date
-        var existingAttendance = await _context.Attendances
-            .Where(a => a.BatchId == batchId && a.Date.Date == date.Value.Date)
-            .ToListAsync();
+        // Get existing attendance for this date and timing
+        var existingAttendanceQuery = _context.Attendances
+            .Where(a => a.BatchId == batchId && a.Date.Date == date.Value.Date);
+        
+        if (timingId.HasValue)
+        {
+            existingAttendanceQuery = existingAttendanceQuery.Where(a => a.TimingId == timingId.Value);
+        }
+        
+        var existingAttendance = await existingAttendanceQuery.ToListAsync();
 
         var model = new TakeAttendanceViewModel
         {
             BatchId = batchId,
+            TimingId = timingId,
             BatchName = batch.BatchName,
             BatchCode = batch.BatchCode,
             TradeName = batch.Trade?.NameEnglish ?? "N/A",
             SessionName = batch.Session?.Name ?? "N/A",
-            TimingName = batch.Timing != null ? $"{batch.Timing.StartTime:HH:mm} - {batch.Timing.EndTime:HH:mm}" : "N/A",
+            TimingName = timing != null ? $"{timing.StartTime:hh\\:mm} - {timing.EndTime:hh\\:mm}" : "N/A",
             RoomName = batch.Room != null ? (batch.Room.RoomName ?? batch.Room.RoomNumber) : "N/A",
             AttendanceDate = date.Value,
             Students = students.Select(s => {
-                enrollmentsMap.TryGetValue(s.Id, out var enr);
                 var existing = existingAttendance.FirstOrDefault(a => a.StudentId == s.Id);
                 return new StudentAttendanceViewModel
                 {
                     StudentId = s.Id,
-                    EnrollmentId = enr?.Id,
-                    RegistrationNumber = enr?.RegNo ?? s.RegistrationNumber,
+                    EnrollmentId = null,
+                    RegistrationNumber = s.RegistrationNumber,
                     StudentName = $"{s.FirstName} {s.LastName}",
                     Status = existing?.Status ?? "Present",
                     TimeIn = existing?.TimeIn,
@@ -139,30 +210,27 @@ public class AttendanceController : Controller
 
         try
         {
-            // Remove existing attendance for this date
-            var existingAttendance = await _context.Attendances
-                .Where(a => a.BatchId == model.BatchId && a.Date.Date == model.AttendanceDate.Date)
-                .ToListAsync();
-
+            // Remove existing attendance for this date and timing
+            var existingAttendanceQuery = _context.Attendances
+                .Where(a => a.BatchId == model.BatchId && a.Date.Date == model.AttendanceDate.Date);
+            
+            if (model.TimingId.HasValue)
+            {
+                existingAttendanceQuery = existingAttendanceQuery.Where(a => a.TimingId == model.TimingId.Value);
+            }
+            
+            var existingAttendance = await existingAttendanceQuery.ToListAsync();
             _context.Attendances.RemoveRange(existingAttendance);
-
-            // Resolve enrollments for this batch
-            var studentIds = model.Students.Select(s => s.StudentId).ToList();
-            var enrollmentsMap = await _context.Enrollments
-                .AsNoTracking()
-                .Where(e => studentIds.Contains(e.StudentId) && e.SessionId == batch.SessionId && e.TradeId == batch.TradeId)
-                .ToDictionaryAsync(e => e.StudentId, e => e.Id);
 
             // Add new attendance records
             foreach (var student in model.Students)
             {
-                enrollmentsMap.TryGetValue(student.StudentId, out var enrollmentId);
-
                 var attendance = new Attendance
                 {
                     StudentId = student.StudentId,
                     BatchId = model.BatchId,
-                    EnrollmentId = student.EnrollmentId ?? enrollmentId,
+                    TimingId = model.TimingId,
+                    EnrollmentId = null, // Enrollments table not in use
                     Date = model.AttendanceDate,
                     Status = student.Status,
                     TimeIn = student.TimeIn,
@@ -219,7 +287,7 @@ public class AttendanceController : Controller
             .Include(a => a.Enrollment)
             .Include(a => a.MarkedByUser)
             .Where(a => a.BatchId == batchId && a.Date.Date == date.Value.Date)
-            .OrderBy(a => a.Enrollment != null ? a.Enrollment.RegNo : a.Student.RegistrationNumber)
+.OrderBy(a => a.Enrollment != null ? a.Enrollment.RegNo : (a.Student != null ? a.Student.RegistrationNumber : string.Empty))
             .ToListAsync();
 
         var model = new ViewAttendanceViewModel
@@ -234,8 +302,8 @@ public class AttendanceController : Controller
             {
                 StudentId = a.StudentId,
                 EnrollmentId = a.EnrollmentId,
-                RegistrationNumber = a.Enrollment != null ? a.Enrollment.RegNo : a.Student.RegistrationNumber,
-                StudentName = $"{a.Student.FirstName} {a.Student.LastName}",
+RegistrationNumber = a.Enrollment != null ? a.Enrollment.RegNo : (a.Student != null ? a.Student.RegistrationNumber : string.Empty),
+StudentName = $"{(a.Student != null ? a.Student.FirstName : string.Empty)} {(a.Student != null ? a.Student.LastName : string.Empty)}",
                 Status = a.Status,
                 TimeIn = a.TimeIn,
                 TimeOut = a.TimeOut,
@@ -283,10 +351,10 @@ public class AttendanceController : Controller
             .Include(a => a.Student)
             .Include(a => a.Enrollment)
             .Where(a => a.BatchId == batchId && a.Date >= fromDate && a.Date <= toDate)
-            .GroupBy(a => a.EnrollmentId ?? 0)
+            .GroupBy(a => a.StudentId)
             .Select(g => new StudentAttendanceReportViewModel
             {
-                StudentId = g.First().StudentId,
+                StudentId = g.Key,
                 RegistrationNumber = g.First().Enrollment != null ? g.First().Enrollment.RegNo : g.First().Student.RegistrationNumber,
                 StudentName = $"{g.First().Student.FirstName} {g.First().Student.LastName}",
                 TotalDays = g.Count(),
@@ -404,7 +472,7 @@ public class AttendanceController : Controller
                 Remarks = a.Remarks ?? string.Empty,
                 MarkedBy = a.MarkedByUser?.UserName ?? "System",
                 MarkedOn = a.CreatedDate,
-                BatchName = a.Batch.BatchName
+BatchName = a.Batch?.BatchName ?? "N/A"
             }).ToList()
         };
 
@@ -421,7 +489,6 @@ public class AttendanceController : Controller
         IQueryable<Batch> query = _context.Batches
             .Include(b => b.Trade)
             .Include(b => b.Session)
-            .Include(b => b.Students)
             .Where(b => !b.IsDeleted);
 
         // If not SuperAdmin, filter by assigned teacher batches
@@ -431,19 +498,27 @@ public class AttendanceController : Controller
             query = query.Where(b => teacherBatches.Contains(b.Id));
         }
 
-        return await query
-            .Select(b => new AttendanceBatchListViewModel
+        var batches = await query.ToListAsync();
+        
+        var result = new List<AttendanceBatchListViewModel>();
+        foreach (var batch in batches)
+        {
+            var studentCount = await _context.Students
+                .CountAsync(s => s.BatchId == batch.Id && !s.IsDeleted);
+            
+            result.Add(new AttendanceBatchListViewModel
             {
-                BatchId = b.Id,
-                BatchCode = b.BatchCode,
-                BatchName = b.BatchName,
-                TradeName = b.Trade.NameEnglish,
-                SessionName = b.Session.Name,
-                StudentCount = b.Students.Count(s => !s.IsDeleted),
-                Status = b.Status
-            })
-            .OrderBy(b => b.BatchCode)
-            .ToListAsync();
+                BatchId = batch.Id,
+                BatchCode = batch.BatchCode,
+                BatchName = batch.BatchName,
+                TradeName = batch.Trade.NameEnglish,
+                SessionName = batch.Session.Name,
+                StudentCount = studentCount,
+                Status = batch.Status
+            });
+        }
+        
+        return result.OrderBy(b => b.BatchCode).ToList();
     }
 
     // API endpoint for quick attendance status

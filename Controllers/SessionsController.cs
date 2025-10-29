@@ -81,9 +81,10 @@ public class SessionsController : Controller
     // GET: Sessions/Details/5
     public async Task<IActionResult> Details(int id)
     {
-        var session = await _context.Sessions
+var session = await _context.Sessions
+            .Include(s => s.Batches)
+                .ThenInclude(b => b.Trade)
             .Include(s => s.Students)
-            .ThenInclude(st => st.Trade)
             .FirstOrDefaultAsync(s => s.Id == id && !s.IsDeleted);
 
         if (session == null)
@@ -91,22 +92,43 @@ public class SessionsController : Controller
             return NotFound();
         }
 
-        var model = new SessionViewModel
-        {
-            Id = session.Id,
-            Name = session.Name,
-            Code = session.Code,
-            StartDate = session.StartDate,
-            EndDate = session.EndDate,
-            IsCurrentSession = session.IsCurrentSession,
-            IsActive = session.IsActive,
-            SessionType = session.SessionType,
-            DurationMonths = session.DurationMonths,
-            Description = session.Description ?? string.Empty,
-            CreatedDate = session.CreatedDate,
-            CreatedBy = session.CreatedBy ?? string.Empty,
-            StudentCount = session.Students.Count(s => !s.IsDeleted)
-        };
+// Compute aggregates and batch summaries
+var totalStudents = await _context.Students.CountAsync(st => st.SessionId == id && !st.IsDeleted);
+var batches = await _context.Batches
+    .Where(b => b.SessionId == id && !b.IsDeleted)
+    .Select(b => new BatchSummaryViewModel
+    {
+        Id = b.Id,
+        BatchCode = b.BatchCode,
+        BatchName = b.BatchName,
+        TradeName = b.Trade.NameEnglish,
+        SessionName = session.Name,
+        Status = b.Status,
+        StudentCount = _context.Students.Count(s => s.BatchId == b.Id && !s.IsDeleted)
+    })
+    .ToListAsync();
+
+var model = new SessionViewModel
+{
+    Id = session.Id,
+    Name = session.Name,
+    Code = session.Code,
+    StartDate = session.StartDate,
+    EndDate = session.EndDate,
+    RegistrationStartDate = session.RegistrationStartDate,
+    RegistrationEndDate = session.RegistrationEndDate,
+    IsCurrentSession = session.IsCurrentSession,
+    IsActive = session.IsActive,
+    SessionType = session.SessionType,
+    DurationMonths = session.DurationMonths,
+    Description = session.Description ?? string.Empty,
+    CreatedDate = session.CreatedDate,
+    CreatedBy = session.CreatedBy ?? string.Empty,
+    StudentCount = totalStudents,
+    TotalStudents = totalStudents,
+    TotalBatches = batches.Count,
+    Batches = batches
+};
 
         return View(model);
     }
@@ -152,17 +174,19 @@ public class SessionsController : Controller
                 }
             }
 
-            var newSession = new Session
+var newSession = new Session
             {
                 Name = model.Name,
                 Code = model.Code,
                 StartDate = model.StartDate,
                 EndDate = model.EndDate,
+                RegistrationStartDate = model.RegistrationStartDate,
+                RegistrationEndDate = model.RegistrationEndDate,
                 IsCurrentSession = model.IsCurrentSession,
                 IsActive = model.IsActive,
-            SessionType = model.SessionType ?? string.Empty,
-            DurationMonths = model.DurationMonths,
-            Description = model.Description ?? string.Empty,
+                SessionType = model.SessionType ?? string.Empty,
+                DurationMonths = model.DurationMonths,
+                Description = model.Description ?? string.Empty,
                 CreatedDate = DateTime.UtcNow,
                 CreatedBy = User.Identity?.Name ?? "System"
             };
@@ -186,13 +210,15 @@ public class SessionsController : Controller
             return NotFound();
         }
 
-        var model = new SessionViewModel
+var model = new SessionViewModel
         {
             Id = session.Id,
             Name = session.Name,
             Code = session.Code,
             StartDate = session.StartDate,
             EndDate = session.EndDate,
+            RegistrationStartDate = session.RegistrationStartDate,
+            RegistrationEndDate = session.RegistrationEndDate,
             IsCurrentSession = session.IsCurrentSession,
             IsActive = session.IsActive,
             SessionType = session.SessionType,
@@ -245,8 +271,10 @@ public class SessionsController : Controller
 
             session.Name = model.Name;
             session.Code = model.Code;
-            session.StartDate = model.StartDate;
+session.StartDate = model.StartDate;
             session.EndDate = model.EndDate;
+            session.RegistrationStartDate = model.RegistrationStartDate;
+            session.RegistrationEndDate = model.RegistrationEndDate;
             session.IsCurrentSession = model.IsCurrentSession;
             session.IsActive = model.IsActive;
             session.SessionType = model.SessionType;

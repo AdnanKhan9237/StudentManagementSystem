@@ -22,6 +22,7 @@ public class AttendanceBatchListViewModel
 public class TakeAttendanceViewModel
 {
     public int BatchId { get; set; }
+    public int? TimingId { get; set; }
     public string BatchName { get; set; } = string.Empty;
     public string BatchCode { get; set; } = string.Empty;
     public string TradeName { get; set; } = string.Empty;

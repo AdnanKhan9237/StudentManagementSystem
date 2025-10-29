@@ -84,6 +84,7 @@
                 <div class="card-body">
                     <form asp-action="TakeAttendance" method="post" id="attendanceForm">
                         <input type="hidden" asp-for="BatchId" />
+                        <input type="hidden" asp-for="TimingId" />
                         <input type="hidden" asp-for="BatchName" />
                         <input type="hidden" asp-for="BatchCode" />
                         <input type="hidden" asp-for="TradeName" />

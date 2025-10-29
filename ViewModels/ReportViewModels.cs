@@ -147,3 +147,63 @@ public class FeeReportListViewModel
     public decimal TotalPaid { get; set; }
     public decimal TotalRemaining { get; set; }
 }
+
+// Facility (Rooms) Report ViewModels
+public class FacilityRoomReportItem
+{
+    public int RoomId { get; set; }
+    public string RoomNumber { get; set; } = string.Empty;
+    public string? RoomName { get; set; }
+    public string RoomType { get; set; } = string.Empty;
+    public string? Building { get; set; }
+    public string? Floor { get; set; }
+    public int Capacity { get; set; }
+    public int ActiveBatches { get; set; }
+    public int TotalStudents { get; set; }
+    public double UtilizationPercent => Capacity > 0 ? Math.Min(100.0, (double)TotalStudents / Capacity * 100.0) : 0.0;
+    public bool HasProjector { get; set; }
+    public bool HasComputers { get; set; }
+    public bool HasAirConditioning { get; set; }
+}
+
+public class FacilityReportListViewModel
+{
+    public List<FacilityRoomReportItem> Rooms { get; set; } = new();
+    public int? SessionId { get; set; }
+    public int? TradeId { get; set; }
+    public string RoomType { get; set; } = string.Empty;
+    public string Building { get; set; } = string.Empty;
+    public List<Session> Sessions { get; set; } = new();
+    public List<Trade> Trades { get; set; } = new();
+    public List<string> RoomTypes { get; set; } = new();
+    public List<string> Buildings { get; set; } = new();
+}
+
+// Academic Report ViewModels
+public class AcademicReportItem
+{
+    public int StudentId { get; set; }
+    public string StudentCode { get; set; } = string.Empty;
+    public string StudentName { get; set; } = string.Empty;
+    public string SessionName { get; set; } = string.Empty;
+    public string TradeName { get; set; } = string.Empty;
+    public decimal? LatestPercentage { get; set; }
+    public string? LatestGrade { get; set; }
+    public string? LatestResult { get; set; }
+    public DateTime? LatestExamDate { get; set; }
+    public int CertificatesIssued { get; set; }
+    public DateTime? LastCertificateDate { get; set; }
+}
+
+public class AcademicReportListViewModel
+{
+    public List<AcademicReportItem> Items { get; set; } = new();
+    public int? SessionId { get; set; }
+    public int? TradeId { get; set; }
+    public List<Session> Sessions { get; set; } = new();
+    public List<Trade> Trades { get; set; } = new();
+    public double AveragePercentage => Items.Any(i => i.LatestPercentage.HasValue)
+        ? (double)Items.Where(i => i.LatestPercentage.HasValue).Average(i => i.LatestPercentage!.Value)
+        : 0.0;
+    public double PassRate => Items.Count == 0 ? 0.0 : (Items.Count(i => (i.LatestResult ?? "").Equals("Pass", StringComparison.OrdinalIgnoreCase)) * 100.0 / Items.Count);
+}

@@ -1,0 +1,170 @@
+@{
+    ViewData["Title"] = "Import Students from CSV";
+    Layout = "~/Views/Shared/_ModernLayout.cshtml";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Import Students from CSV</h2>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to List
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["WarningMessage"] != null)
+{
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        @TempData["WarningMessage"]
+        @if (TempData["ImportErrors"] != null)
+        {
+            <hr />
+            <strong>Errors:</strong>
+            <div>@Html.Raw(TempData["ImportErrors"])</div>
+        }
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-upload"></i> Upload CSV File</h5>
+    </div>
+    <div class="card-body">
+        <form asp-action="ImportCsv" method="post" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="csvFile" class="form-label">Select CSV File</label>
+                <input type="file" class="form-control" id="csvFile" name="csvFile" accept=".csv" required />
+                <div class="form-text">Maximum file size: 10 MB</div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-upload"></i> Upload and Import
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-info-circle"></i> CSV Format Instructions</h5>
+    </div>
+    <div class="card-body">
+        <p><strong>Required CSV Format:</strong></p>
+        <p>The CSV file must have the following columns in this exact order:</p>
+        
+        <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Column</th>
+                                    <th>Description</th>
+                                    <th>Example</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>RegistrationNumber</td>
+                                    <td>Unique student registration number</td>
+                                    <td>WEL240001</td>
+                                </tr>
+                                <tr>
+                                    <td>FirstName</td>
+                                    <td>Student's first name</td>
+                                    <td>John</td>
+                                </tr>
+                                <tr>
+                                    <td>LastName</td>
+                                    <td>Student's last name</td>
+                                    <td>Doe</td>
+                                </tr>
+                                <tr>
+                                    <td>FatherName</td>
+                                    <td>Father's name</td>
+                                    <td>Michael Doe</td>
+                                </tr>
+                                <tr>
+                                    <td>CNIC</td>
+                                    <td>National ID (optional)</td>
+                                    <td>12345-1234567-1</td>
+                                </tr>
+                                <tr>
+                                    <td>DateOfBirth</td>
+                                    <td>Date of birth (yyyy-MM-dd)</td>
+                                    <td>2000-01-15</td>
+                                </tr>
+                                <tr>
+                                    <td>Gender</td>
+                                    <td>Male or Female</td>
+                                    <td>Male</td>
+                                </tr>
+                                <tr>
+                                    <td>PhoneNumber</td>
+                                    <td>Contact number</td>
+                                    <td>03001234567</td>
+                                </tr>
+                                <tr>
+                                    <td>Email</td>
+                                    <td>Email address</td>
+                                    <td>john.doe@example.com</td>
+                                </tr>
+                                <tr>
+                                    <td>TradeId</td>
+                                    <td>Trade ID (must exist in system)</td>
+                                    <td>1</td>
+                                </tr>
+                                <tr>
+                                    <td>SessionId</td>
+                                    <td>Session ID (must exist in system)</td>
+                                    <td>2</td>
+                                </tr>
+                                <tr>
+                                    <td>TotalFee</td>
+                                    <td>Total fee amount</td>
+                                    <td>50000</td>
+                                </tr>
+                                <tr>
+                                    <td>Status</td>
+                                    <td>Active, Graduated, Dropped, or Suspended</td>
+                                    <td>Active</td>
+                                </tr>
+                            </tbody>
+            </table>
+        </div>
+
+        <div class="alert alert-warning mt-3">
+            <strong><i class="fas fa-exclamation-triangle"></i> Important Notes:</strong>
+            <ul class="mb-0 mt-2">
+                <li>The first row must be the header row with column names</li>
+                <li>Date format must be: yyyy-MM-dd (e.g., 2000-01-15)</li>
+                <li>TradeId and SessionId must match existing records in the database</li>
+                <li>If a student with the same RegistrationNumber exists, their data will be updated</li>
+                <li>Save your file with UTF-8 encoding to avoid character issues</li>
+            </ul>
+        </div>
+
+        <h6 class="mt-3"><i class="fas fa-file-csv"></i> Sample CSV Content:</h6>
+        <pre class="bg-light p-3 border rounded"><code>RegistrationNumber,FirstName,LastName,FatherName,CNIC,DateOfBirth,Gender,PhoneNumber,Email,TradeId,SessionId,TotalFee,Status
+WEL240001,John,Doe,Michael Doe,12345-1234567-1,2000-01-15,Male,03001234567,john.doe@example.com,1,2,50000,Active
+WEL240002,Jane,Smith,Robert Smith,12345-1234567-2,2001-03-20,Female,03009876543,jane.smith@example.com,1,2,50000,Active</code></pre>
+    </div>
+</div>

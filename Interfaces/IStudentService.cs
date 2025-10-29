@@ -49,4 +49,7 @@ public interface IStudentService
     Task<List<BatchTimingViewModel>> GetBatchTimingsAsync(int batchId);
     Task<dynamic?> GetBatchByIdAsync(int batchId);
     Task<dynamic?> GetTimingByIdAsync(int timingId);
+    
+    // CSV Import
+    Task<(int created, int updated, int failed, List<string> errors)> ImportFromCsvAsync(Stream csvStream);
 }

@@ -212,13 +212,30 @@
         });
 
         function exportToExcel() {
-            // Add Excel export functionality
-            alert('Excel export functionality will be implemented');
+            const baseUrl = '@Url.Action("BatchReportCsv", "Reports")';
+            const params = new URLSearchParams();
+            const sessionId = document.getElementById('sessionId').value;
+            const tradeId = document.getElementById('tradeId').value;
+            const status = document.getElementById('status').value;
+            if (sessionId) params.append('sessionId', sessionId);
+            if (tradeId) params.append('tradeId', tradeId);
+            if (status) params.append('status', status);
+            window.location.href = baseUrl + (params.toString() ? ('?' + params.toString()) : '');
         }
 
         function exportToPDF() {
-            // Add PDF export functionality
-            alert('PDF export functionality will be implemented');
+            const title = 'Batch Report';
+            const table = document.getElementById('batchReportTable');
+            const win = window.open('', '_blank');
+            win.document.write('<html><head><title>' + title + '</title>');
+            win.document.write('<style>body{font-family:Arial,sans-serif;padding:16px;} table{width:100%;border-collapse:collapse} th,td{border:1px solid #ccc;padding:6px;text-align:left}</style>');
+            win.document.write('</head><body>');
+            win.document.write('<h3>' + title + '</h3>');
+            win.document.write(table.outerHTML);
+            win.document.write('</body></html>');
+            win.document.close();
+            win.focus();
+            win.print();
         }
     </script>
 }

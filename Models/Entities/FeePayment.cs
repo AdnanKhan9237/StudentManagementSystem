@@ -28,6 +28,10 @@ public class FeePayment
     [MaxLength(50)]
     public string ReceiptNumber { get; set; } = string.Empty;
 
+    [Required]
+    [MaxLength(50)]
+    public string FeeType { get; set; } = "Admission"; // Admission, Certification, Exam, Material, etc.
+
     [MaxLength(500)]
     public string Remarks { get; set; } = string.Empty;
 

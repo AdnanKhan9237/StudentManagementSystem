@@ -8,6 +8,7 @@ public class Attendance : BaseEntity
     // Foreign Keys
     public int StudentId { get; set; }
     public int BatchId { get; set; }
+    public int? TimingId { get; set; }
 
     // New: Link attendance to a specific enrollment (session+trade)
     public int? EnrollmentId { get; set; }
@@ -31,6 +32,9 @@ public class Attendance : BaseEntity
     
     [ForeignKey(nameof(BatchId))]
     public virtual Batch Batch { get; set; } = null!;
+
+    [ForeignKey(nameof(TimingId))]
+    public virtual Timing? Timing { get; set; }
 
     [ForeignKey(nameof(EnrollmentId))]
     public virtual Enrollment? Enrollment { get; set; }

@@ -85,10 +85,10 @@
                                                 </div>
                                                 <div class="col-4 text-right">
                                                     <div class="btn-group-vertical" role="group">
-                                                        <a asp-action="TakeAttendance" asp-route-batchId="@batch.BatchId" 
+                                                        <a asp-action="SelectTiming" asp-route-batchId="@batch.BatchId" 
                                                            asp-route-date="@Model.TodayDate.ToString("yyyy-MM-dd")" 
-                                                           class="btn btn-success btn-sm mb-1" title="Take Today's Attendance">
-                                                            <i class="fas fa-check"></i> Take Attendance
+                                                           class="btn btn-primary btn-sm mb-1" title="Select Timing & Take Attendance">
+                                                            <i class="fas fa-clock"></i> Take Attendance
                                                         </a>
                                                         <a asp-action="ViewAttendance" asp-route-batchId="@batch.BatchId" 
                                                            asp-route-date="@Model.TodayDate.ToString("yyyy-MM-dd")" 

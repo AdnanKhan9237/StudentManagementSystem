@@ -70,11 +70,33 @@
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label asp-for="TimingId" class="form-label">Timing</label>
-                                <select asp-for="TimingId" class="form-select" asp-items="ViewBag.Timings">
-                                    <option value="">Select Timing (Optional)</option>
-                                </select>
-                                <span asp-validation-for="TimingId" class="text-danger"></span>
+                                <label class="form-label">Timings (Select Multiple)</label>
+                                <div id="timingsCheckboxList" class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                    @if (ViewBag.Timings != null)
+                                    {
+                                        foreach (var timing in (IEnumerable<SelectListItem>)ViewBag.Timings)
+                                        {
+                                            var isSelected = Model.SelectedTimingIds != null && Model.SelectedTimingIds.Contains(int.Parse(timing.Value));
+                                            var existing = Model.BatchTimings?.FirstOrDefault(bt => bt.TimingId.ToString() == timing.Value);
+                                            <div class="form-check">
+                                                <input class="form-check-input timing-checkbox" type="checkbox" 
+                                                       name="SelectedTimingIds" value="@timing.Value" 
+                                                       id="timing_@timing.Value" @(isSelected ? "checked" : "")>
+                                                <label class="form-check-label" for="timing_@timing.Value">
+                                                    @timing.Text
+                                                </label>
+                                                <input type="number" class="form-control form-control-sm mt-1" 
+                                                       name="TimingMaxStudents_@timing.Value" 
+                                                       id="maxStudents_@timing.Value" 
+                                                       placeholder="Max students for this timing" 
+                                                       min="1" max="50" 
+                                                       value="@(existing != null ? existing.MaxStudents : 0)" 
+                                                       style="display: @(isSelected ? "block" : "none");">
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                                <small class="text-muted">Select one or more timings and specify max students for each</small>
                             </div>
                         </div>
                     </div>
@@ -108,9 +130,10 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label asp-for="MaxStudents" class="form-label">Maximum Students *</label>
-                                <input asp-for="MaxStudents" type="number" class="form-control" placeholder="Maximum number of students" />
-                                <span asp-validation-for="MaxStudents" class="text-danger"></span>
+                                <label class="form-label">Maximum Students (Total)</label>
+                                <input type="number" id="maxStudentsDisplay" class="form-control" placeholder="Auto-calculated from timings" readonly style="background-color: #f8f9fa;" value="@(Model.MaxStudents > 0 ? Model.MaxStudents : 0)" />
+                                <input asp-for="MaxStudents" type="hidden" />
+                                <small class="text-muted">Automatically calculated as sum of max students from selected timings</small>
                             </div>
                         </div>
                     </div>
@@ -135,4 +158,56 @@
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        $(document).ready(function() {
+            function calculateTotalMaxStudents() {
+                var total = 0;
+                $('.timing-checkbox:checked').each(function() {
+                    var timingId = $(this).val();
+                    var maxStudentsInput = $('#maxStudents_' + timingId);
+                    var maxStudents = parseInt(maxStudentsInput.val()) || 0;
+                    total += maxStudents;
+                });
+                $('#maxStudentsDisplay').val(total > 0 ? total : '');
+                $('#MaxStudents').val(total > 0 ? total : 0);
+            }
+
+            // Initialize based on preselected timings
+            $('.timing-checkbox').each(function() {
+                var timingId = $(this).val();
+                var maxStudentsInput = $('#maxStudents_' + timingId);
+                if ($(this).is(':checked')) {
+                    if (!maxStudentsInput.val() || parseInt(maxStudentsInput.val()) === 0) {
+                        maxStudentsInput.val(50);
+                    }
+                    maxStudentsInput.show().attr('required', true);
+                } else {
+                    maxStudentsInput.hide().attr('required', false);
+                }
+            });
+            calculateTotalMaxStudents();
+
+            $('.timing-checkbox').change(function() {
+                var timingId = $(this).val();
+                var maxStudentsInput = $('#maxStudents_' + timingId);
+                if ($(this).is(':checked')) {
+                    maxStudentsInput.show().attr('required', true);
+                    if (!maxStudentsInput.val()) {
+                        maxStudentsInput.val(50);
+                    }
+                } else {
+                    maxStudentsInput.hide().attr('required', false).val('');
+                }
+                calculateTotalMaxStudents();
+            });
+
+            $(document).on('input', 'input[id^="maxStudents_"]', function() {
+                calculateTotalMaxStudents();
+            });
+
+            $('form').on('submit', function() {
+                calculateTotalMaxStudents();
+            });
+        });
+    </script>
 }

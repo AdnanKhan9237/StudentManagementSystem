@@ -184,9 +184,33 @@ public class StudentsController : Controller
     [Authorize(Roles = $"{UserRoles.SuperAdmin},{UserRoles.Accounts},{UserRoles.Teacher}")]
     public async Task<IActionResult> Edit(int id, StudentViewModel model)
     {
+        _logger.LogInformation("=== STUDENT EDIT DEBUG START ===");
+        _logger.LogInformation("ID: {Id}, Model.Id: {ModelId}, BatchId: {BatchId}, TimingId: {TimingId}", id, model.Id, model.BatchId, model.TimingId);
+        
         if (id != model.Id)
         {
             return NotFound();
+        }
+
+        // Log ModelState errors
+        if (!ModelState.IsValid)
+        {
+            _logger.LogWarning("ModelState is INVALID");
+            foreach (var key in ModelState.Keys)
+            {
+                var errors = ModelState[key]?.Errors;
+                if (errors != null && errors.Count > 0)
+                {
+                    foreach (var error in errors)
+                    {
+                        _logger.LogWarning("{Key}: {Error}", key, error.ErrorMessage ?? error.Exception?.Message);
+                    }
+                }
+            }
+        }
+        else
+        {
+            _logger.LogInformation("ModelState is VALID");
         }
 
         if (ModelState.IsValid)
@@ -199,6 +223,8 @@ public class StudentsController : Controller
             }
 
             var success = await _studentService.UpdateStudentAsync(model, photoPath);
+            _logger.LogInformation("Update result: {Success}", success);
+            
             if (success)
             {
                 TempData["SuccessMessage"] = "Student updated successfully!";
@@ -435,6 +461,95 @@ TempData["SuccessMessage"] = $"Provisioned: {created}, Skipped: {skipped}, Faile
         return View(studentsByStatus);
     }
 
+    // GET: Students/Export - Export filtered students to CSV
+    [Authorize(Roles = $"{UserRoles.SuperAdmin},{UserRoles.Admin},{UserRoles.Accounts},{UserRoles.Teacher}")]
+    public async Task<IActionResult> Export(string searchTerm = "", int? tradeFilter = null, int? sessionFilter = null, string statusFilter = "")
+    {
+        try
+        {
+            StudentListViewModel model;
+            
+            if (User.IsInRole(UserRoles.Teacher))
+            {
+                var teacherId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                model = await _studentService.GetStudentsForTeacherAsync(teacherId!, 1, int.MaxValue, searchTerm, tradeFilter, sessionFilter, statusFilter);
+            }
+            else
+            {
+                model = await _studentService.GetStudentsAsync(1, int.MaxValue, searchTerm, tradeFilter, sessionFilter, statusFilter);
+            }
+
+            var csv = new System.Text.StringBuilder();
+            // Match import format: RegistrationNumber,FirstName,LastName,FatherName,CNIC,DateOfBirth,Gender,PhoneNumber,Email,TradeId,SessionId,TotalFee,Status
+            csv.AppendLine("RegistrationNumber,FirstName,LastName,FatherName,CNIC,DateOfBirth,Gender,PhoneNumber,Email,TradeId,SessionId,TotalFee,Status");
+
+            foreach (var student in model.Students)
+            {
+                csv.AppendLine($"{CsvEscape(student.RegistrationNumber)},{CsvEscape(student.FirstName)},{CsvEscape(student.LastName)},{CsvEscape(student.FatherName)},{CsvEscape(student.CNIC)},{student.DateOfBirth.ToString("yyyy-MM-dd")},{CsvEscape(student.Gender)},{CsvEscape(student.PhoneNumber)},{CsvEscape(student.Email)},{student.TradeId},{student.SessionId},{student.TotalFee},{CsvEscape(student.Status)}");
+            }
+
+            var fileName = $"Students_Export_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
+            var bytes = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true).GetBytes(csv.ToString());
+            return File(bytes, "text/csv; charset=utf-8", fileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error exporting students");
+            TempData["ErrorMessage"] = "An error occurred while exporting students.";
+            return RedirectToAction(nameof(Index));
+        }
+    }
+
+    // GET: Students/ImportCsv - Only Accounts and SuperAdmin can import CSV
+    [Authorize(Roles = $"{UserRoles.SuperAdmin},{UserRoles.Accounts}")]
+    public IActionResult ImportCsv()
+    {
+        return View();
+    }
+
+    // POST: Students/ImportCsv - Only Accounts and SuperAdmin can import CSV
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = $"{UserRoles.SuperAdmin},{UserRoles.Accounts}")]
+    public async Task<IActionResult> ImportCsv(IFormFile csvFile)
+    {
+        if (csvFile == null || csvFile.Length == 0)
+        {
+            TempData["ErrorMessage"] = "Please select a CSV file to upload.";
+            return View();
+        }
+
+        if (!csvFile.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+        {
+            TempData["ErrorMessage"] = "Please upload a valid CSV file.";
+            return View();
+        }
+
+        try
+        {
+            using var stream = csvFile.OpenReadStream();
+            var (created, updated, failed, errors) = await _studentService.ImportFromCsvAsync(stream);
+
+            if (errors.Any())
+            {
+                TempData["WarningMessage"] = $"Import completed with errors. Created: {created}, Updated: {updated}, Failed: {failed}";
+                TempData["ImportErrors"] = string.Join("<br/>", errors.Take(10)); // Show first 10 errors
+            }
+            else
+            {
+                TempData["SuccessMessage"] = $"Import successful! Created: {created}, Updated: {updated}, Failed: {failed}";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error importing CSV file");
+            TempData["ErrorMessage"] = "An error occurred while importing the CSV file.";
+            return View();
+        }
+    }
+
     private async Task PopulateSelectListsAsync(StudentViewModel model)
     {
         model.Trades = await _dropdownService.GetTradesAsync(model.TradeId);
@@ -470,5 +585,13 @@ TempData["SuccessMessage"] = $"Provisioned: {created}, Skipped: {skipped}, Faile
             _logger.LogError(ex, "Error saving photo");
             return null;
         }
+    }
+
+    private static string CsvEscape(string? input)
+    {
+        if (string.IsNullOrEmpty(input)) return string.Empty;
+        var needsQuotes = input.Contains(',') || input.Contains('"') || input.Contains('\n') || input.Contains('\r');
+        var value = input.Replace("\"", "\"\"");
+        return needsQuotes ? $"\"{value}\"" : value;
     }
 }

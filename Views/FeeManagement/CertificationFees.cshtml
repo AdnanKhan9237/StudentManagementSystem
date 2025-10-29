@@ -1,0 +1,249 @@
+@model CertificationFeeListViewModel
+
+@{
+    ViewData["Title"] = "Certification Fee Management";
+    Layout = "~/Views/Shared/_ModernLayout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-header">
+                <div class="page-block">
+                    <div class="row align-items-center">
+                        <div class="col-md-12">
+                            <div class="page-header-title">
+                                <h5 class="m-b-10">Certification Fee Management</h5>
+                            </div>
+                            <ul class="breadcrumb">
+                                <li class="breadcrumb-item">
+                                    <a asp-action="Index" asp-controller="Home">
+                                        <i class="feather icon-home"></i>
+                                    </a>
+                                </li>
+                                <li class="breadcrumb-item">
+                                    <a asp-action="Index">Fee Management</a>
+                                </li>
+                                <li class="breadcrumb-item">Certification Fees</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="feather icon-check-circle"></i> @TempData["SuccessMessage"]
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="feather icon-alert-circle"></i> @TempData["ErrorMessage"]
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Students Certification Fee Status</h5>
+                    <div class="float-right">
+                        <a asp-action="Index" class="btn btn-secondary btn-sm">
+                            <i class="feather icon-arrow-left"></i> Back to Fee Management
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Search and Filter Form -->
+                    <form method="get" class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label for="searchTerm" class="form-label">Search</label>
+                            <input type="text" class="form-control" id="searchTerm" name="searchTerm" 
+                                   value="@Model.SearchTerm" placeholder="Name or Registration No.">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="statusFilter" class="form-label">Status</label>
+                            <select class="form-control" id="statusFilter" name="statusFilter">
+                                <option value="">All Students</option>
+                                <option value="notapplied" selected="@(Model.StatusFilter == "notapplied")">Not Applied</option>
+                                <option value="applied" selected="@(Model.StatusFilter == "applied")">Applied</option>
+                                <option value="paid" selected="@(Model.StatusFilter == "paid")">Paid</option>
+                                <option value="pending" selected="@(Model.StatusFilter == "pending")">Pending Payment</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="feather icon-search"></i> Search
+                            </button>
+                            <a asp-action="CertificationFees" class="btn btn-secondary">
+                                <i class="feather icon-refresh-cw"></i> Reset
+                            </a>
+                        </div>
+                    </form>
+
+                    @if (Model.Students.Any())
+                    {
+                        <!-- Students Table -->
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Reg No.</th>
+                                        <th>Student Name</th>
+                                        <th>Trade</th>
+                                        <th>Qualification</th>
+                                        <th>Cert. Fee</th>
+                                        <th>Paid</th>
+                                        <th>Fee Status</th>
+                                        <th>Cert. Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var student in Model.Students)
+                                    {
+                                        <tr>
+                                            <td>@student.RegistrationNumber</td>
+                                            <td>@student.StudentName</td>
+                                            <td>@student.TradeName</td>
+                                            <td>@student.PreviousQualification</td>
+                                            <td>₨@student.CertificationFee.ToString("N0")</td>
+                                            <td>₨@student.CertificationFeePaid.ToString("N0")</td>
+                                            <td>
+                                                @if (student.PaymentStatus == "Not Applied")
+                                                {
+                                                    <span class="badge badge-secondary">Not Applied</span>
+                                                }
+                                                else if (student.PaymentStatus == "Paid")
+                                                {
+                                                    <span class="badge badge-success">Paid</span>
+                                                }
+                                                else if (student.PaymentStatus == "Partial")
+                                                {
+                                                    <span class="badge badge-warning">Partial</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge badge-danger">Unpaid</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @{
+                                                    var certStatus = student.CertificationStatus ?? "FeeNotPaid";
+                                                }
+                                                @if (certStatus == "FeeNotPaid")
+                                                {
+                                                    <span class="badge badge-secondary">Fee Not Paid</span>
+                                                }
+                                                else if (certStatus == "FeePaid")
+                                                {
+                                                    <span class="badge badge-info">Fee Paid</span>
+                                                }
+                                                else if (certStatus == "InProgress")
+                                                {
+                                                    <span class="badge badge-warning">In Progress</span>
+                                                }
+                                                else if (certStatus == "Ready")
+                                                {
+                                                    <span class="badge badge-primary">Ready</span>
+                                                    @if (student.CertificationReadyDate.HasValue)
+                                                    {
+                                                        <br/><small class="text-muted">@student.CertificationReadyDate.Value.ToString("MMM dd")</small>
+                                                    }
+                                                }
+                                                else if (certStatus == "Handed")
+                                                {
+                                                    <span class="badge badge-success">Handed</span>
+                                                    @if (student.CertificationHandedDate.HasValue)
+                                                    {
+                                                        <br/><small class="text-muted">@student.CertificationHandedDate.Value.ToString("MMM dd")</small>
+                                                    }
+                                                }
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    @if (!student.IsCertificationFeeApplicable)
+                                                    {
+                                                        <a asp-action="ApplyCertificationFee" asp-route-id="@student.StudentId" 
+                                                           class="btn btn-primary btn-sm" title="Apply Certification Fee">
+                                                            <i class="feather icon-plus"></i> Apply
+                                                        </a>
+                                                    }
+                                                    else if (student.CertificationFeeRemaining > 0)
+                                                    {
+                                                        <a asp-action="CollectCertificationFee" asp-route-id="@student.StudentId" 
+                                                           class="btn btn-success btn-sm" title="Collect Fee">
+                                                            <i class="feather icon-dollar-sign"></i> Collect
+                                                        </a>
+                                                    }
+                                                    else if (student.PaymentStatus == "Paid")
+                                                    {
+                                                        <a asp-action="UpdateCertificationStatus" asp-route-id="@student.StudentId" 
+                                                           class="btn btn-info btn-sm" title="Update Status">
+                                                            <i class="feather icon-edit"></i> Status
+                                                        </a>
+                                                    }
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        @if (Model.TotalPages > 1)
+                        {
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination justify-content-center">
+                                    @if (Model.PageNumber > 1)
+                                    {
+                                        <li class="page-item">
+                                            <a class="page-link" asp-action="CertificationFees" asp-route-page="@(Model.PageNumber - 1)" 
+                                               asp-route-searchTerm="@Model.SearchTerm" asp-route-statusFilter="@Model.StatusFilter">Previous</a>
+                                        </li>
+                                    }
+
+                                    @for (int i = Math.Max(1, Model.PageNumber - 2); i <= Math.Min(Model.TotalPages, Model.PageNumber + 2); i++)
+                                    {
+                                        <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                                            <a class="page-link" asp-action="CertificationFees" asp-route-page="@i" 
+                                               asp-route-searchTerm="@Model.SearchTerm" asp-route-statusFilter="@Model.StatusFilter">@i</a>
+                                        </li>
+                                    }
+
+                                    @if (Model.PageNumber < Model.TotalPages)
+                                    {
+                                        <li class="page-item">
+                                            <a class="page-link" asp-action="CertificationFees" asp-route-page="@(Model.PageNumber + 1)" 
+                                               asp-route-searchTerm="@Model.SearchTerm" asp-route-statusFilter="@Model.StatusFilter">Next</a>
+                                        </li>
+                                    }
+                                </ul>
+                            </nav>
+                        }
+
+                        <div class="text-muted small">
+                            Showing @((Model.PageNumber - 1) * Model.PageSize + 1) to @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalRecords) 
+                            of @Model.TotalRecords entries
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info text-center">
+                            <i class="feather icon-info"></i>
+                            No students found matching your criteria.
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

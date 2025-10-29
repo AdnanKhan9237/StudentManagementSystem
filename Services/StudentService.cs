@@ -5,6 +5,9 @@ using StudentManagementSystem.Data;
 using StudentManagementSystem.Interfaces;
 using StudentManagementSystem.ViewModels;
 using StudentManagementSystem.Models.Entities;
+using StudentManagementSystem.Constants;
+using System.Globalization;
+using System.Text;
 
 namespace StudentManagementSystem.Services;
 
@@ -15,7 +18,8 @@ public class StudentService : IStudentService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
 
-    public StudentService(ApplicationDbContext context, ILogger<StudentService> logger, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+    public StudentService(ApplicationDbContext context, ILogger<StudentService> logger, 
+        UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
     {
         _context = context;
         _logger = logger;
@@ -122,587 +126,34 @@ public class StudentService : IStudentService
         };
     }
 
-    public async Task<StudentViewModel?> GetStudentByIdAsync(int id)
-    {
-        var student = await _context.Students
-            .Include(s => s.Trade)
-            .Include(s => s.Session)
-            .Include(s => s.Batch)
-            .FirstOrDefaultAsync(s => s.Id == id && !s.IsDeleted);
-
-        if (student == null) return null;
-
-        var viewModel = new StudentViewModel
-        {
-            Id = student.Id,
-            RegistrationNumber = student.RegistrationNumber,
-            FirstName = student.FirstName,
-            LastName = student.LastName,
-            FatherName = student.FatherName,
-            CNIC = student.CNIC,
-            DateOfBirth = student.DateOfBirth,
-            Gender = student.Gender,
-            BloodGroup = student.BloodGroup,
-            PhoneNumber = student.PhoneNumber,
-            Email = student.Email,
-            Address = student.Address,
-            City = student.City,
-            Province = student.Province,
-            PostalCode = student.PostalCode,
-            EmergencyContactName = student.EmergencyContactName,
-            EmergencyContactPhone = student.EmergencyContactPhone,
-            PhotoPath = student.PhotoPath,
-            AdmissionDate = student.AdmissionDate,
-            Status = student.Status,
-            TradeId = student.TradeId,
-            SessionId = student.SessionId,
-            BatchId = student.BatchId,
-            PreviousQualification = student.PreviousQualification,
-            PreviousInstitute = student.PreviousInstitute,
-            PreviousMarks = student.PreviousMarks,
-            TotalFee = student.TotalFee,
-            PaidAmount = student.PaidAmount,
-            Remarks = student.Remarks,
-            TradeName = student.Trade.NameEnglish,
-            SessionName = student.Session.Name,
-            BatchName = student.Batch?.BatchName ?? "Not Assigned"
-        };
-
-        await PopulateSelectListsAsync(viewModel);
-        return viewModel;
-    }
-
-    public async Task<StudentViewModel?> GetStudentByRegistrationNumberAsync(string registrationNumber)
-    {
-        var student = await _context.Students
-            .Include(s => s.Trade)
-            .Include(s => s.Session)
-            .Include(s => s.Batch)
-            .FirstOrDefaultAsync(s => s.RegistrationNumber == registrationNumber && !s.IsDeleted);
-
-        if (student == null) return null;
-
-        return await GetStudentByIdAsync(student.Id);
-    }
-
-    public async Task<bool> CreateStudentAsync(StudentViewModel model, string? photoPath = null)
-    {
-        try
-        {
-            // Check if registration number is unique
-            if (!await IsRegistrationNumberUniqueAsync(model.RegistrationNumber))
-            {
-                return false;
-            }
-
-            var student = new Student
-            {
-                RegistrationNumber = model.RegistrationNumber,
-                FirstName = model.FirstName,
-                LastName = model.LastName,
-                FatherName = model.FatherName,
-                CNIC = model.CNIC,
-                DateOfBirth = model.DateOfBirth,
-                Gender = model.Gender,
-                BloodGroup = model.BloodGroup,
-                PhoneNumber = model.PhoneNumber,
-                Email = model.Email,
-                Address = model.Address,
-                City = model.City,
-                Province = model.Province,
-                PostalCode = model.PostalCode,
-                EmergencyContactName = model.EmergencyContactName,
-                EmergencyContactPhone = model.EmergencyContactPhone,
-                PhotoPath = photoPath,
-                AdmissionDate = model.AdmissionDate,
-                Status = model.Status,
-                TradeId = model.TradeId,
-                SessionId = model.SessionId,
-                BatchId = model.BatchId,
-                PreviousQualification = model.PreviousQualification,
-                PreviousInstitute = model.PreviousInstitute,
-                PreviousMarks = model.PreviousMarks,
-                TotalFee = model.TotalFee,
-                PaidAmount = model.PaidAmount,
-                Remarks = model.Remarks,
-                CreatedDate = DateTime.UtcNow,
-                IsActive = true
-            };
-
-            _context.Students.Add(student);
-            await _context.SaveChangesAsync();
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating student");
-            return false;
-        }
-    }
-
-    public async Task<bool> UpdateStudentAsync(StudentViewModel model, string? photoPath = null)
-    {
-        try
-        {
-            var student = await _context.Students.FirstOrDefaultAsync(s => s.Id == model.Id);
-            if (student == null) return false;
-
-            // Check if registration number is unique (excluding current student)
-            if (!await IsRegistrationNumberUniqueAsync(model.RegistrationNumber, model.Id))
-            {
-                return false;
-            }
-
-            student.RegistrationNumber = model.RegistrationNumber;
-            student.FirstName = model.FirstName;
-            student.LastName = model.LastName;
-            student.FatherName = model.FatherName;
-            student.CNIC = model.CNIC;
-            student.DateOfBirth = model.DateOfBirth;
-            student.Gender = model.Gender;
-            student.BloodGroup = model.BloodGroup;
-            student.PhoneNumber = model.PhoneNumber;
-            student.Email = model.Email;
-            student.Address = model.Address;
-            student.City = model.City;
-            student.Province = model.Province;
-            student.PostalCode = model.PostalCode;
-            student.EmergencyContactName = model.EmergencyContactName;
-            student.EmergencyContactPhone = model.EmergencyContactPhone;
-            
-            if (!string.IsNullOrEmpty(photoPath))
-            {
-                student.PhotoPath = photoPath;
-            }
-            
-            student.AdmissionDate = model.AdmissionDate;
-            student.Status = model.Status;
-            student.TradeId = model.TradeId;
-            student.SessionId = model.SessionId;
-            student.BatchId = model.BatchId;
-            student.PreviousQualification = model.PreviousQualification;
-            student.PreviousInstitute = model.PreviousInstitute;
-            student.PreviousMarks = model.PreviousMarks;
-            student.TotalFee = model.TotalFee;
-            student.PaidAmount = model.PaidAmount;
-            student.Remarks = model.Remarks;
-            student.ModifiedDate = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating student");
-            return false;
-        }
-    }
-
-    public async Task<bool> DeleteStudentAsync(int id)
-    {
-        try
-        {
-            var student = await _context.Students.FirstOrDefaultAsync(s => s.Id == id);
-            if (student == null) return false;
-
-            student.IsDeleted = true;
-            student.ModifiedDate = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting student");
-            return false;
-        }
-    }
-
-    public async Task<bool> IsRegistrationNumberUniqueAsync(string registrationNumber, int? excludeId = null)
-    {
-        var query = _context.Students.Where(s => s.RegistrationNumber == registrationNumber && !s.IsDeleted);
-        
-        if (excludeId.HasValue)
-        {
-            query = query.Where(s => s.Id != excludeId.Value);
-        }
-
-        return !await query.AnyAsync();
-    }
-
-    public async Task<bool> IsCnicUniqueAsync(string cnic, int? excludeId = null)
-    {
-        if (string.IsNullOrWhiteSpace(cnic)) return true;
-
-        var query = _context.Students.Where(s => s.CNIC == cnic && !s.IsDeleted);
-        
-        if (excludeId.HasValue)
-        {
-            query = query.Where(s => s.Id != excludeId.Value);
-        }
-
-        return !await query.AnyAsync();
-    }
-
-    public async Task<string> GenerateRegistrationNumberAsync(int tradeId, int sessionId)
-    {
-        var trade = await _context.Trades.FirstOrDefaultAsync(t => t.Id == tradeId);
-        var session = await _context.Sessions.FirstOrDefaultAsync(s => s.Id == sessionId);
-        
-        if (trade == null || session == null) return "";
-
-        var year = session.StartDate.Year.ToString().Substring(2);
-        var tradeCode = trade.Code;
-        
-        // Get the next sequence number for this trade and session
-        var lastStudent = await _context.Students
-            .Where(s => s.TradeId == tradeId && s.SessionId == sessionId && !s.IsDeleted)
-            .OrderByDescending(s => s.RegistrationNumber)
-            .FirstOrDefaultAsync();
-
-        int sequenceNumber = 1;
-        if (lastStudent != null)
-        {
-            // Extract sequence number from last registration number
-            var lastRegNumber = lastStudent.RegistrationNumber;
-            var parts = lastRegNumber.Split('-');
-            if (parts.Length >= 3 && int.TryParse(parts[2], out int lastSequence))
-            {
-                sequenceNumber = lastSequence + 1;
-            }
-        }
-
-        return $"{year}-{tradeCode}-{sequenceNumber:D3}";
-    }
-
-    public async Task<decimal> CalculateRemainingFeeAsync(int studentId)
-    {
-        var student = await _context.Students.FirstOrDefaultAsync(s => s.Id == studentId);
-        return student?.RemainingAmount ?? 0;
-    }
-
-    public async Task<bool> AssignToBatchAsync(int studentId, int batchId)
-    {
-        try
-        {
-            var student = await _context.Students.FirstOrDefaultAsync(s => s.Id == studentId);
-            var batch = await _context.Batches.FirstOrDefaultAsync(b => b.Id == batchId);
-            
-            if (student == null || batch == null) return false;
-
-            // Check if batch has available slots
-            var currentEnrollment = await _context.Students.CountAsync(s => s.BatchId == batchId && !s.IsDeleted);
-            if (currentEnrollment >= batch.MaxStudents) return false;
-
-            student.BatchId = batchId;
-            student.ModifiedDate = DateTime.UtcNow;
-
-            // Ensure Enrollment exists for this student's session/trade and link to batch
-            var enrollment = await _context.Enrollments
-                .FirstOrDefaultAsync(e => e.StudentId == studentId 
-                                       && e.SessionId == batch.SessionId 
-                                       && e.TradeId == batch.TradeId);
-            if (enrollment == null)
-            {
-                enrollment = new Enrollment
-                {
-                    StudentId = studentId,
-                    SessionId = batch.SessionId,
-                    TradeId = batch.TradeId,
-                    BatchId = batchId,
-                    TimingId = batch.TimingId,
-                    RegNo = student.RegistrationNumber,
-                    AdmissionDate = DateTime.UtcNow,
-                    Status = "Active",
-                    CreatedDate = DateTime.UtcNow
-                };
-                _context.Enrollments.Add(enrollment);
-            }
-            else
-            {
-                enrollment.BatchId = batchId;
-                enrollment.TimingId = batch.TimingId;
-                enrollment.ModifiedDate = DateTime.UtcNow;
-            }
-
-            // Update batch enrollment count
-            batch.CurrentEnrollment = currentEnrollment + 1;
-
-            await _context.SaveChangesAsync();
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error assigning student to batch");
-            return false;
-        }
-    }
-
-    public async Task<bool> RemoveFromBatchAsync(int studentId)
-    {
-        try
-        {
-            var student = await _context.Students.FirstOrDefaultAsync(s => s.Id == studentId);
-            if (student == null) return false;
-
-            var batchId = student.BatchId;
-            student.BatchId = null;
-            student.ModifiedDate = DateTime.UtcNow;
-
-            // Update batch enrollment count
-            if (batchId.HasValue)
-            {
-                var batch = await _context.Batches.FirstOrDefaultAsync(b => b.Id == batchId.Value);
-                if (batch != null)
-                {
-                    var currentEnrollment = await _context.Students.CountAsync(s => s.BatchId == batchId && !s.IsDeleted);
-                    batch.CurrentEnrollment = Math.Max(0, currentEnrollment - 1);
-                }
-            }
-
-            await _context.SaveChangesAsync();
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error removing student from batch");
-            return false;
-        }
-    }
-
-    public async Task<List<StudentViewModel>> GetStudentsByBatchAsync(int batchId)
-    {
-        return await _context.Students
-            .Include(s => s.Trade)
-            .Include(s => s.Session)
-            .Where(s => s.BatchId == batchId && !s.IsDeleted)
-            .Select(s => new StudentViewModel
-            {
-                Id = s.Id,
-                RegistrationNumber = s.RegistrationNumber,
-                FirstName = s.FirstName,
-                LastName = s.LastName,
-                Status = s.Status,
-                TradeName = s.Trade.NameEnglish,
-                SessionName = s.Session.Name
-            })
-            .ToListAsync();
-    }
-
-    public async Task<List<StudentViewModel>> GetStudentsByTradeAsync(int tradeId)
-    {
-        return await _context.Students
-            .Include(s => s.Trade)
-            .Include(s => s.Session)
-            .Where(s => s.TradeId == tradeId && !s.IsDeleted)
-            .Select(s => new StudentViewModel
-            {
-                Id = s.Id,
-                RegistrationNumber = s.RegistrationNumber,
-                FirstName = s.FirstName,
-                LastName = s.LastName,
-                Status = s.Status,
-                TradeName = s.Trade.NameEnglish,
-                SessionName = s.Session.Name
-            })
-            .ToListAsync();
-    }
-
-    public async Task<List<StudentViewModel>> GetStudentsBySessionAsync(int sessionId)
-    {
-        return await _context.Students
-            .Include(s => s.Trade)
-            .Include(s => s.Session)
-            .Where(s => s.SessionId == sessionId && !s.IsDeleted)
-            .Select(s => new StudentViewModel
-            {
-                Id = s.Id,
-                RegistrationNumber = s.RegistrationNumber,
-                FirstName = s.FirstName,
-                LastName = s.LastName,
-                Status = s.Status,
-                TradeName = s.Trade.NameEnglish,
-                SessionName = s.Session.Name
-            })
-            .ToListAsync();
-    }
-
-    public async Task<bool> ProvisionStudentLoginAsync(int studentId)
-    {
-        var student = await _context.Students.FirstOrDefaultAsync(s => s.Id == studentId && !s.IsDeleted);
-        if (student == null) return false;
-
-        // If already linked to a user, ensure role and MustChangePassword
-        if (!string.IsNullOrEmpty(student.UserId))
-        {
-            var existing = await _userManager.FindByIdAsync(student.UserId);
-            if (existing == null) return false;
-            existing.MustChangePassword = true;
-            await _userManager.UpdateAsync(existing);
-            return true;
-        }
-
-        // Create user with username=RegistrationNumber and default password
-        var user = new ApplicationUser
-        {
-            UserName = student.RegistrationNumber,
-            Email = student.Email ?? $"{student.RegistrationNumber}@noemail.local",
-            FirstName = student.FirstName,
-            LastName = student.LastName,
-            PhoneNumber = student.PhoneNumber,
-            EmailConfirmed = true,
-            IsActive = true,
-            MustChangePassword = true,
-            CreatedDate = DateTime.UtcNow,
-            CreatedBy = "System"
-        };
-
-        // Ensure Student role exists
-        if (!await _roleManager.RoleExistsAsync(Constants.UserRoles.Student))
-        {
-            await _roleManager.CreateAsync(new IdentityRole(Constants.UserRoles.Student));
-        }
-
-var result = await _userManager.CreateAsync(user, "Sostti123+");
-        if (!result.Succeeded)
-        {
-            _logger.LogWarning("Failed to create user for student {StudentId}: {Errors}", studentId, string.Join(", ", result.Errors.Select(e => e.Description)));
-            return false;
-        }
-
-        await _userManager.AddToRoleAsync(user, Constants.UserRoles.Student);
-
-        // Link to student
-        student.UserId = user.Id;
-        await _context.SaveChangesAsync();
-        return true;
-    }
-
-    public async Task<int> GetTotalStudentsCountAsync()
-    {
-        return await _context.Students.CountAsync(s => !s.IsDeleted);
-    }
-
-    public async Task<(int created, int skipped, int failed)> ProvisionAllUnlinkedStudentLoginsAsync()
-    {
-        int created = 0, skipped = 0, failed = 0;
-
-        // Ensure Student role exists
-        if (!await _roleManager.RoleExistsAsync(Constants.UserRoles.Student))
-        {
-            await _roleManager.CreateAsync(new IdentityRole(Constants.UserRoles.Student));
-        }
-
-        var candidates = await _context.Students
-            .Where(s => !s.IsDeleted && s.UserId == null && (s.CNIC != null || s.PhoneNumber != null))
-            .ToListAsync();
-
-        foreach (var s in candidates)
-        {
-            try
-            {
-                var userName = !string.IsNullOrWhiteSpace(s.CNIC) ? s.CNIC! : (s.PhoneNumber ?? string.Empty);
-                if (string.IsNullOrWhiteSpace(userName))
-                {
-                    skipped++;
-                    continue;
-                }
-
-                // Skip if username already exists
-                var existingUser = await _userManager.FindByNameAsync(userName);
-                if (existingUser != null)
-                {
-                    skipped++;
-                    continue;
-                }
-
-                var user = new ApplicationUser
-                {
-                    UserName = userName,
-                    Email = s.Email ?? $"{userName}@noemail.local",
-                    FirstName = s.FirstName,
-                    LastName = s.LastName,
-                    PhoneNumber = s.PhoneNumber,
-                    EmailConfirmed = true,
-                    IsActive = true,
-                    MustChangePassword = true,
-                    CreatedDate = DateTime.UtcNow,
-                    CreatedBy = "System"
-                };
-
-                var result = await _userManager.CreateAsync(user, "Sostti123+");
-                if (!result.Succeeded)
-                {
-                    failed++;
-                    continue;
-                }
-
-                await _userManager.AddToRoleAsync(user, Constants.UserRoles.Student);
-                s.UserId = user.Id;
-                created++;
-            }
-            catch
-            {
-                failed++;
-            }
-        }
-
-        await _context.SaveChangesAsync();
-        return (created, skipped, failed);
-    }
-
-    public async Task<int> GetActiveStudentsCountAsync()
-    {
-        return await _context.Students.CountAsync(s => s.Status == "Active" && !s.IsDeleted);
-    }
-
-    public async Task<Dictionary<string, int>> GetStudentsCountByStatusAsync()
-    {
-        return await _context.Students
-            .Where(s => !s.IsDeleted)
-            .GroupBy(s => s.Status)
-            .ToDictionaryAsync(g => g.Key, g => g.Count());
-    }
-
-    public async Task<Dictionary<string, int>> GetStudentsCountByTradeAsync()
-    {
-        return await _context.Students
-            .Include(s => s.Trade)
-            .Where(s => !s.IsDeleted)
-            .GroupBy(s => s.Trade.NameEnglish)
-            .ToDictionaryAsync(g => g.Key, g => g.Count());
-    }
-
-    // Role-based methods
-    public async Task<StudentListViewModel> GetStudentsForTeacherAsync(string teacherId, int pageNumber, int pageSize, 
+    public async Task<StudentListViewModel> GetStudentsForTeacherAsync(string teacherId, int pageNumber, int pageSize,
         string searchTerm = "", int? tradeFilter = null, int? sessionFilter = null, string statusFilter = "")
     {
-        // First, get the teacher by user ID to get teacher ID
+        // Get teacher by user ID
         var teacher = await _context.Teachers
             .FirstOrDefaultAsync(t => t.UserId == teacherId && !t.IsDeleted);
-        
-        if (teacher == null)
-            return new StudentListViewModel();
 
+        if (teacher == null)
+        {
+            return new StudentListViewModel();
+        }
+
+        // Get students assigned to batches where this teacher is primary or secondary instructor
         var query = _context.Students
             .Include(s => s.Trade)
             .Include(s => s.Session)
             .Include(s => s.Batch)
-            .ThenInclude(b => b!.PrimaryInstructor)
-            .Include(s => s.Batch)
-            .ThenInclude(b => b!.SecondaryInstructor)
             .Where(s => !s.IsDeleted && 
-                   s.Batch != null && 
-                   (s.Batch.PrimaryInstructorId == teacher.Id || s.Batch.SecondaryInstructorId == teacher.Id))
+                       s.Batch != null &&
+                       (s.Batch.PrimaryInstructorId == teacher.Id || s.Batch.SecondaryInstructorId == teacher.Id))
             .AsQueryable();
 
-        // Apply filters (same as regular GetStudentsAsync)
+        // Apply filters
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             query = query.Where(s => s.FirstName.Contains(searchTerm) ||
                                    s.LastName.Contains(searchTerm) ||
-                                   s.RegistrationNumber.Contains(searchTerm) ||
-                                   (s.CNIC != null && s.CNIC.Contains(searchTerm)));
+                                   s.RegistrationNumber.Contains(searchTerm));
         }
 
         if (tradeFilter.HasValue)
@@ -785,6 +236,57 @@ var result = await _userManager.CreateAsync(user, "Sostti123+");
         };
     }
 
+    public async Task<StudentViewModel?> GetStudentByIdAsync(int id)
+    {
+        var student = await _context.Students
+            .Include(s => s.Trade)
+            .Include(s => s.Session)
+            .Include(s => s.Batch)
+            .FirstOrDefaultAsync(s => s.Id == id && !s.IsDeleted);
+
+        if (student == null) return null;
+
+        var viewModel = new StudentViewModel
+        {
+            Id = student.Id,
+            RegistrationNumber = student.RegistrationNumber,
+            FirstName = student.FirstName,
+            LastName = student.LastName,
+            FatherName = student.FatherName,
+            CNIC = student.CNIC,
+            DateOfBirth = student.DateOfBirth,
+            Gender = student.Gender,
+            BloodGroup = student.BloodGroup,
+            PhoneNumber = student.PhoneNumber,
+            Email = student.Email,
+            Address = student.Address,
+            City = student.City,
+            Province = student.Province,
+            PostalCode = student.PostalCode,
+            EmergencyContactName = student.EmergencyContactName,
+            EmergencyContactPhone = student.EmergencyContactPhone,
+            PhotoPath = student.PhotoPath,
+            AdmissionDate = student.AdmissionDate,
+            Status = student.Status,
+            TradeId = student.TradeId,
+            SessionId = student.SessionId,
+            BatchId = student.BatchId,
+            TimingId = student.TimingId,
+            PreviousQualification = student.PreviousQualification,
+            PreviousInstitute = student.PreviousInstitute,
+            PreviousMarks = student.PreviousMarks,
+            TotalFee = student.TotalFee,
+            PaidAmount = student.PaidAmount,
+            Remarks = student.Remarks,
+            TradeName = student.Trade.NameEnglish,
+            SessionName = student.Session.Name,
+            BatchName = student.Batch?.BatchName ?? "Not Assigned"
+        };
+
+        await PopulateSelectListsAsync(viewModel);
+        return viewModel;
+    }
+
     public async Task<StudentViewModel?> GetStudentByIdForTeacherAsync(int id, string teacherId)
     {
         // First, get the teacher by user ID to get teacher ID
@@ -824,42 +326,424 @@ var result = await _userManager.CreateAsync(user, "Sostti123+");
         return await GetStudentByIdAsync(student.Id); // Reuse existing method for full details
     }
 
-    private async Task PopulateSelectListsAsync(StudentViewModel model)
+    public async Task<StudentViewModel?> GetStudentByRegistrationNumberAsync(string registrationNumber)
     {
-        var trades = await _context.Trades
-            .Where(t => t.IsActive && !t.IsDeleted)
-            .Select(t => new { t.Id, t.NameEnglish })
-            .ToListAsync();
+        var student = await _context.Students
+            .Include(s => s.Trade)
+            .Include(s => s.Session)
+            .Include(s => s.Batch)
+            .FirstOrDefaultAsync(s => s.RegistrationNumber == registrationNumber && !s.IsDeleted);
 
-        var sessions = await _context.Sessions
-            .Where(s => s.IsActive && !s.IsDeleted)
-            .Select(s => new { s.Id, s.Name })
-            .ToListAsync();
+        if (student == null) return null;
 
-        var batches = await _context.Batches
-            .Where(b => b.TradeId == model.TradeId && b.SessionId == model.SessionId && b.Status == "Active" && !b.IsDeleted)
-            .Select(b => new { b.Id, b.BatchName })
-            .ToListAsync();
+        return await GetStudentByIdAsync(student.Id);
+    }
 
-        var genderOptions = new List<SelectListItem>
+    public async Task<bool> CreateStudentAsync(StudentViewModel model, string? photoPath = null)
+    {
+        try
         {
-            new() { Value = "Male", Text = "Male" },
-            new() { Value = "Female", Text = "Female" }
-        };
+            // Check if registration number is unique
+            if (!await IsRegistrationNumberUniqueAsync(model.RegistrationNumber))
+            {
+                return false;
+            }
 
-        var statusOptions = new List<SelectListItem>
+            var student = new Student
+            {
+                RegistrationNumber = model.RegistrationNumber,
+                StudentCode = model.RegistrationNumber, // Using RegistrationNumber as StudentCode
+                FirstName = model.FirstName,
+                LastName = model.LastName,
+                FatherName = model.FatherName,
+                CNIC = model.CNIC,
+                DateOfBirth = model.DateOfBirth,
+                Gender = model.Gender,
+                BloodGroup = model.BloodGroup,
+                PhoneNumber = model.PhoneNumber,
+                Email = model.Email,
+                Address = model.Address,
+                City = model.City,
+                Province = model.Province,
+                PostalCode = model.PostalCode,
+                EmergencyContactName = model.EmergencyContactName,
+                EmergencyContactPhone = model.EmergencyContactPhone,
+                PhotoPath = photoPath ?? model.PhotoPath,
+                AdmissionDate = model.AdmissionDate,
+                Status = model.Status,
+                TradeId = model.TradeId,
+                SessionId = model.SessionId,
+                BatchId = model.BatchId,
+                TimingId = model.TimingId,
+                PreviousQualification = model.PreviousQualification,
+                PreviousInstitute = model.PreviousInstitute,
+                PreviousMarks = model.PreviousMarks,
+                TotalFee = model.TotalFee,
+                PaidAmount = model.PaidAmount,
+                Remarks = model.Remarks,
+                CreatedDate = DateTime.Now,
+                ModifiedDate = DateTime.Now
+            };
+
+            _context.Students.Add(student);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        catch (Exception ex)
         {
-            new() { Value = "Active", Text = "Active" },
-            new() { Value = "Graduated", Text = "Graduated" },
-            new() { Value = "Dropped", Text = "Dropped" },
-            new() { Value = "Suspended", Text = "Suspended" }
-        };
+            _logger.LogError(ex, "Error creating student");
+            return false;
+        }
+    }
 
-        model.Trades = new SelectList(trades, "Id", "NameEnglish", model.TradeId);
-        model.Sessions = new SelectList(sessions, "Id", "Name", model.SessionId);
-        model.Batches = new SelectList(batches, "Id", "BatchName", model.BatchId);
-        model.GenderOptions = new SelectList(genderOptions, "Value", "Text", model.Gender);
-        model.StatusOptions = new SelectList(statusOptions, "Value", "Text", model.Status);
+    public async Task<bool> UpdateStudentAsync(StudentViewModel model, string? photoPath = null)
+    {
+        try
+        {
+            var student = await _context.Students.FindAsync(model.Id);
+            if (student == null) return false;
+
+            // Check if registration number is unique (excluding current student)
+            if (!await IsRegistrationNumberUniqueAsync(model.RegistrationNumber, model.Id))
+            {
+                return false;
+            }
+
+            student.RegistrationNumber = model.RegistrationNumber;
+            student.FirstName = model.FirstName;
+            student.LastName = model.LastName;
+            student.FatherName = model.FatherName;
+            student.CNIC = model.CNIC;
+            student.DateOfBirth = model.DateOfBirth;
+            student.Gender = model.Gender;
+            student.BloodGroup = model.BloodGroup;
+            student.PhoneNumber = model.PhoneNumber;
+            student.Email = model.Email;
+            student.Address = model.Address;
+            student.City = model.City;
+            student.Province = model.Province;
+            student.PostalCode = model.PostalCode;
+            student.EmergencyContactName = model.EmergencyContactName;
+            student.EmergencyContactPhone = model.EmergencyContactPhone;
+            student.AdmissionDate = model.AdmissionDate;
+            student.Status = model.Status;
+            student.TradeId = model.TradeId;
+            student.SessionId = model.SessionId;
+            student.BatchId = model.BatchId;
+            student.TimingId = model.TimingId;
+            student.PreviousQualification = model.PreviousQualification;
+            student.PreviousInstitute = model.PreviousInstitute;
+            student.PreviousMarks = model.PreviousMarks;
+            student.TotalFee = model.TotalFee;
+            student.PaidAmount = model.PaidAmount;
+            student.Remarks = model.Remarks;
+            student.ModifiedDate = DateTime.Now;
+
+            if (!string.IsNullOrEmpty(photoPath))
+            {
+                student.PhotoPath = photoPath;
+            }
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating student");
+            return false;
+        }
+    }
+
+    public async Task<bool> DeleteStudentAsync(int id)
+    {
+        try
+        {
+            var student = await _context.Students.FindAsync(id);
+            if (student == null) return false;
+
+            student.IsDeleted = true;
+            student.ModifiedDate = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting student");
+            return false;
+        }
+    }
+
+    public async Task<bool> IsRegistrationNumberUniqueAsync(string registrationNumber, int? excludeId = null)
+    {
+        var query = _context.Students.Where(s => s.RegistrationNumber == registrationNumber && !s.IsDeleted);
+        
+        if (excludeId.HasValue)
+        {
+            query = query.Where(s => s.Id != excludeId.Value);
+        }
+
+        return !await query.AnyAsync();
+    }
+
+    public async Task<bool> IsCnicUniqueAsync(string cnic, int? excludeId = null)
+    {
+        if (string.IsNullOrWhiteSpace(cnic)) return true;
+
+        var query = _context.Students.Where(s => s.CNIC == cnic && !s.IsDeleted);
+        
+        if (excludeId.HasValue)
+        {
+            query = query.Where(s => s.Id != excludeId.Value);
+        }
+
+        return !await query.AnyAsync();
+    }
+
+    public async Task<string> GenerateRegistrationNumberAsync(int tradeId, int sessionId)
+    {
+        try
+        {
+            var trade = await _context.Trades.FindAsync(tradeId);
+            var session = await _context.Sessions.FindAsync(sessionId);
+
+            if (trade == null || session == null)
+            {
+                return string.Empty;
+            }
+
+            // Get trade code (first 3 letters of trade name)
+            var tradeCode = new string(trade.NameEnglish.Take(3).ToArray()).ToUpper();
+            
+            // Get session year (last 2 digits of start year)
+            var sessionYear = session.StartDate.ToString("yy");
+
+            // Get next sequence number for this trade and session
+            var existingCount = await _context.Students
+                .Where(s => s.TradeId == tradeId && s.SessionId == sessionId && !s.IsDeleted)
+                .CountAsync();
+
+            var sequence = (existingCount + 1).ToString("D4");
+
+            return $"{tradeCode}{sessionYear}{sequence}";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating registration number");
+            return string.Empty;
+        }
+    }
+
+    public async Task<decimal> CalculateRemainingFeeAsync(int studentId)
+    {
+        var student = await _context.Students.FindAsync(studentId);
+        if (student == null) return 0;
+
+        return student.TotalFee - student.PaidAmount;
+    }
+
+    public async Task<bool> AssignToBatchAsync(int studentId, int batchId)
+    {
+        try
+        {
+            var student = await _context.Students.FindAsync(studentId);
+            var batch = await _context.Batches.FindAsync(batchId);
+
+            if (student == null || batch == null) return false;
+
+            // Check if batch is full
+            var currentEnrollment = await _context.Students
+                .CountAsync(s => s.BatchId == batchId && !s.IsDeleted);
+
+            if (currentEnrollment >= batch.MaxStudents)
+            {
+                return false;
+            }
+
+            student.BatchId = batchId;
+            student.ModifiedDate = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error assigning student to batch");
+            return false;
+        }
+    }
+
+    public async Task<bool> RemoveFromBatchAsync(int studentId)
+    {
+        try
+        {
+            var student = await _context.Students.FindAsync(studentId);
+            if (student == null) return false;
+
+            student.BatchId = null;
+            student.TimingId = null;
+            student.ModifiedDate = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing student from batch");
+            return false;
+        }
+    }
+
+    public async Task<List<StudentViewModel>> GetStudentsByBatchAsync(int batchId)
+    {
+        return await _context.Students
+            .Include(s => s.Trade)
+            .Include(s => s.Session)
+            .Include(s => s.Batch)
+            .Where(s => s.BatchId == batchId && !s.IsDeleted)
+            .Select(s => new StudentViewModel
+            {
+                Id = s.Id,
+                RegistrationNumber = s.RegistrationNumber,
+                FirstName = s.FirstName,
+                LastName = s.LastName,
+                TradeName = s.Trade.NameEnglish,
+                SessionName = s.Session.Name,
+                BatchName = s.Batch != null ? s.Batch.BatchName : ""
+            })
+            .ToListAsync();
+    }
+
+    public async Task<List<StudentViewModel>> GetStudentsByTradeAsync(int tradeId)
+    {
+        return await _context.Students
+            .Include(s => s.Trade)
+            .Include(s => s.Session)
+            .Where(s => s.TradeId == tradeId && !s.IsDeleted)
+            .Select(s => new StudentViewModel
+            {
+                Id = s.Id,
+                RegistrationNumber = s.RegistrationNumber,
+                FirstName = s.FirstName,
+                LastName = s.LastName,
+                TradeName = s.Trade.NameEnglish,
+                SessionName = s.Session.Name
+            })
+            .ToListAsync();
+    }
+
+    public async Task<List<StudentViewModel>> GetStudentsBySessionAsync(int sessionId)
+    {
+        return await _context.Students
+            .Include(s => s.Trade)
+            .Include(s => s.Session)
+            .Where(s => s.SessionId == sessionId && !s.IsDeleted)
+            .Select(s => new StudentViewModel
+            {
+                Id = s.Id,
+                RegistrationNumber = s.RegistrationNumber,
+                FirstName = s.FirstName,
+                LastName = s.LastName,
+                TradeName = s.Trade.NameEnglish,
+                SessionName = s.Session.Name
+            })
+            .ToListAsync();
+    }
+
+    public async Task<int> GetTotalStudentsCountAsync()
+    {
+        return await _context.Students.CountAsync(s => !s.IsDeleted);
+    }
+
+    public async Task<int> GetActiveStudentsCountAsync()
+    {
+        return await _context.Students.CountAsync(s => s.Status == "Active" && !s.IsDeleted);
+    }
+
+    public async Task<Dictionary<string, int>> GetStudentsCountByStatusAsync()
+    {
+        return await _context.Students
+            .Where(s => !s.IsDeleted)
+            .GroupBy(s => s.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Status, x => x.Count);
+    }
+
+    public async Task<Dictionary<string, int>> GetStudentsCountByTradeAsync()
+    {
+        return await _context.Students
+            .Include(s => s.Trade)
+            .Where(s => !s.IsDeleted)
+            .GroupBy(s => s.Trade.NameEnglish)
+            .Select(g => new { Trade = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Trade, x => x.Count);
+    }
+
+    public async Task<bool> ProvisionStudentLoginAsync(int studentId)
+    {
+        try
+        {
+            var student = await _context.Students.FindAsync(studentId);
+            if (student == null || !string.IsNullOrEmpty(student.UserId))
+            {
+                return false; // Student not found or already has a login
+            }
+
+            // Create user account
+            var user = new ApplicationUser
+            {
+                UserName = student.RegistrationNumber,
+                Email = student.Email ?? $"{student.RegistrationNumber}@student.local",
+                EmailConfirmed = true
+            };
+
+            var result = await _userManager.CreateAsync(user, "Sostti123+");
+            if (!result.Succeeded)
+            {
+                return false;
+            }
+
+            // Assign Student role
+            await _userManager.AddToRoleAsync(user, UserRoles.Student);
+
+            // Link user to student
+            student.UserId = user.Id;
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error provisioning student login");
+            return false;
+        }
+    }
+
+    public async Task<(int created, int skipped, int failed)> ProvisionAllUnlinkedStudentLoginsAsync()
+    {
+        int created = 0, skipped = 0, failed = 0;
+
+        var unlinkedStudents = await _context.Students
+            .Where(s => s.UserId == null && !s.IsDeleted)
+            .ToListAsync();
+
+        foreach (var student in unlinkedStudents)
+        {
+            try
+            {
+                var success = await ProvisionStudentLoginAsync(student.Id);
+                if (success)
+                    created++;
+                else
+                    skipped++;
+            }
+            catch
+            {
+                failed++;
+            }
+        }
+
+        return (created, skipped, failed);
     }
 
     public async Task<List<BatchTimingViewModel>> GetBatchTimingsAsync(int batchId)
@@ -924,5 +808,191 @@ var result = await _userManager.CreateAsync(user, "Sostti123+");
             .FirstOrDefaultAsync();
 
         return timing;
+    }
+
+    public async Task<(int created, int updated, int failed, List<string> errors)> ImportFromCsvAsync(Stream csvStream)
+    {
+        int created = 0, updated = 0, failed = 0;
+        var errors = new List<string>();
+
+        try
+        {
+            using var reader = new StreamReader(csvStream, Encoding.UTF8);
+            
+            // Read header line
+            var headerLine = await reader.ReadLineAsync();
+            if (string.IsNullOrWhiteSpace(headerLine))
+            {
+                errors.Add("CSV file is empty or header is missing");
+                return (0, 0, 1, errors);
+            }
+
+            int lineNumber = 1;
+            
+            while (!reader.EndOfStream)
+            {
+                lineNumber++;
+                var line = await reader.ReadLineAsync();
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                try
+                {
+                    var values = line.Split(',');
+                    
+                    // Expected CSV format:
+                    // RegistrationNumber,FirstName,LastName,FatherName,CNIC,DateOfBirth,Gender,PhoneNumber,Email,TradeId,SessionId,TotalFee,Status
+                    
+                    if (values.Length < 13)
+                    {
+                        errors.Add($"Line {lineNumber}: Insufficient columns");
+                        failed++;
+                        continue;
+                    }
+
+                    var registrationNumber = values[0].Trim();
+                    
+                    // Check if student already exists
+                    var existingStudent = await _context.Students
+                        .FirstOrDefaultAsync(s => s.RegistrationNumber == registrationNumber && !s.IsDeleted);
+
+                    if (existingStudent != null)
+                    {
+                        // Update existing student
+                        existingStudent.FirstName = values[1].Trim();
+                        existingStudent.LastName = values[2].Trim();
+                        existingStudent.FatherName = values[3].Trim();
+                        existingStudent.CNIC = values[4].Trim();
+                        
+                        if (DateTime.TryParseExact(values[5].Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dob))
+                        {
+                            existingStudent.DateOfBirth = dob;
+                        }
+                        
+                        existingStudent.Gender = values[6].Trim();
+                        existingStudent.PhoneNumber = values[7].Trim();
+                        existingStudent.Email = values[8].Trim();
+                        
+                        if (int.TryParse(values[9].Trim(), out var tradeId))
+                            existingStudent.TradeId = tradeId;
+                            
+                        if (int.TryParse(values[10].Trim(), out var sessionId))
+                            existingStudent.SessionId = sessionId;
+                            
+                        if (decimal.TryParse(values[11].Trim(), out var totalFee))
+                            existingStudent.TotalFee = totalFee;
+                            
+                        existingStudent.Status = values[12].Trim();
+                        existingStudent.ModifiedDate = DateTime.Now;
+                        
+                        updated++;
+                    }
+                    else
+                    {
+                        // Create new student
+                        var student = new Student
+                        {
+                            RegistrationNumber = registrationNumber,
+                            StudentCode = registrationNumber,
+                            FirstName = values[1].Trim(),
+                            LastName = values[2].Trim(),
+                            FatherName = values[3].Trim(),
+                            CNIC = values[4].Trim(),
+                            Gender = values[6].Trim(),
+                            PhoneNumber = values[7].Trim(),
+                            Email = values[8].Trim(),
+                            Status = values[12].Trim(),
+                            AdmissionDate = DateTime.Today,
+                            CreatedDate = DateTime.Now,
+                            ModifiedDate = DateTime.Now
+                        };
+
+                        if (DateTime.TryParseExact(values[5].Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dob))
+                        {
+                            student.DateOfBirth = dob;
+                        }
+                        
+                        if (int.TryParse(values[9].Trim(), out var tradeId))
+                            student.TradeId = tradeId;
+                        else
+                        {
+                            errors.Add($"Line {lineNumber}: Invalid TradeId");
+                            failed++;
+                            continue;
+                        }
+                            
+                        if (int.TryParse(values[10].Trim(), out var sessionId))
+                            student.SessionId = sessionId;
+                        else
+                        {
+                            errors.Add($"Line {lineNumber}: Invalid SessionId");
+                            failed++;
+                            continue;
+                        }
+                            
+                        if (decimal.TryParse(values[11].Trim(), out var totalFee))
+                            student.TotalFee = totalFee;
+
+                        _context.Students.Add(student);
+                        created++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    errors.Add($"Line {lineNumber}: {ex.Message}");
+                    failed++;
+                }
+            }
+
+            if (created > 0 || updated > 0)
+            {
+                await _context.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error importing CSV");
+            errors.Add($"General error: {ex.Message}");
+            failed++;
+        }
+
+        return (created, updated, failed, errors);
+    }
+
+    private async Task PopulateSelectListsAsync(StudentViewModel model)
+    {
+        var trades = await _context.Trades
+            .Where(t => t.IsActive && !t.IsDeleted)
+            .Select(t => new { t.Id, t.NameEnglish })
+            .ToListAsync();
+
+        var sessions = await _context.Sessions
+            .Where(s => s.IsActive && !s.IsDeleted)
+            .Select(s => new { s.Id, s.Name })
+            .ToListAsync();
+
+        var batches = await _context.Batches
+            .Where(b => b.TradeId == model.TradeId && b.SessionId == model.SessionId && b.Status == "Active" && !b.IsDeleted)
+            .Select(b => new { b.Id, b.BatchName })
+            .ToListAsync();
+
+        var genderOptions = new List<SelectListItem>
+        {
+            new() { Value = "Male", Text = "Male" },
+            new() { Value = "Female", Text = "Female" }
+        };
+
+        var statusOptions = new List<SelectListItem>
+        {
+            new() { Value = "Active", Text = "Active" },
+            new() { Value = "Graduated", Text = "Graduated" },
+            new() { Value = "Dropped", Text = "Dropped" },
+            new() { Value = "Suspended", Text = "Suspended" }
+        };
+
+        model.Trades = new SelectList(trades, "Id", "NameEnglish", model.TradeId);
+        model.Sessions = new SelectList(sessions, "Id", "Name", model.SessionId);
+        model.Batches = new SelectList(batches, "Id", "BatchName", model.BatchId);
+        model.GenderOptions = new SelectList(genderOptions, "Value", "Text", model.Gender);
+        model.StatusOptions = new SelectList(statusOptions, "Value", "Text", model.Status);
     }
 }

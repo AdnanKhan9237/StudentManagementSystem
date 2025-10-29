@@ -14,8 +14,8 @@ public static class DbSeeder
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
-        // Ensure database is created
-        await context.Database.EnsureCreatedAsync();
+// Apply pending migrations and ensure database is up to date
+        await context.Database.MigrateAsync();
 
         // Seed roles
         await SeedRolesAsync(roleManager);

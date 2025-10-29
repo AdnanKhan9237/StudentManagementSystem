@@ -17,9 +17,8 @@ public class Student : BaseEntity
     [MaxLength(100)]
     public string FirstName { get; set; } = string.Empty;
     
-    [Required]
     [MaxLength(100)]
-    public string LastName { get; set; } = string.Empty;
+    public string? LastName { get; set; }
     
     [MaxLength(100)]
     public string? FatherName { get; set; }
@@ -92,6 +91,22 @@ public class Student : BaseEntity
     public decimal TotalFee { get; set; }
     public decimal PaidAmount { get; set; }
     public decimal RemainingAmount => TotalFee - PaidAmount;
+    
+    // Certification Fee
+    public decimal CertificationFee { get; set; }
+    public decimal CertificationFeePaid { get; set; }
+    public decimal CertificationFeeRemaining => CertificationFee - CertificationFeePaid;
+    public bool IsCertificationFeeApplicable { get; set; } = false;
+    public DateTime? CertificationFeeAppliedDate { get; set; }
+    
+    // Physical Certification Status
+    [MaxLength(50)]
+    public string? CertificationStatus { get; set; } // FeeNotPaid, FeePaid, InProgress, Ready, Handed
+    public DateTime? CertificationReadyDate { get; set; }
+    public DateTime? CertificationHandedDate { get; set; }
+    
+    [MaxLength(500)]
+    public string? CertificationRemarks { get; set; }
     
     [MaxLength(500)]
     public string? Remarks { get; set; }

@@ -48,6 +48,17 @@
                     </div>
                 </form>
 
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <button type="button" class="btn btn-success" onclick="exportToExcel()">
+                            <i class="fas fa-file-excel"></i> Export to Excel
+                        </button>
+                        <button type="button" class="btn btn-danger ms-2" onclick="exportToPDF()">
+                            <i class="fas fa-file-pdf"></i> Export to PDF
+                        </button>
+                    </div>
+                </div>
+
                 @if (Model.Enrollments.Any())
                 {
                     <div class="table-responsive">
@@ -107,6 +118,30 @@
                 order: [[2, 'asc'], [3, 'asc'], [0, 'asc']]
             });
         });
+        function exportToExcel() {
+            const baseUrl = '@Url.Action("EnrollmentReportCsv", "Reports")';
+            const params = new URLSearchParams();
+            const sessionId = document.getElementById('sessionId').value;
+            const tradeId = document.getElementById('tradeId').value;
+            if (sessionId) params.append('sessionId', sessionId);
+            if (tradeId) params.append('tradeId', tradeId);
+            window.location.href = baseUrl + (params.toString() ? ('?' + params.toString()) : '');
+        }
+
+        function exportToPDF() {
+            const title = 'Enrollment Report';
+            const table = document.getElementById('enrollmentReportTable');
+            const win = window.open('', '_blank');
+            win.document.write('<html><head><title>' + title + '</title>');
+            win.document.write('<style>body{font-family:Arial,sans-serif;padding:16px;} table{width:100%;border-collapse:collapse} th,td{border:1px solid #ccc;padding:6px;text-align:left}</style>');
+            win.document.write('</head><body>');
+            win.document.write('<h3>' + title + '</h3>');
+            win.document.write(table.outerHTML);
+            win.document.write('</body></html>');
+            win.document.close();
+            win.focus();
+            win.print();
+        }
     </script>
 }
 

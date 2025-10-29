@@ -1,0 +1,253 @@
+@model CertificationFeeCollectionViewModel
+
+@{
+    ViewData["Title"] = $"Collect Certification Fee - {Model.StudentName}";
+    Layout = "~/Views/Shared/_ModernLayout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-header">
+                <div class="page-block">
+                    <div class="row align-items-center">
+                        <div class="col-md-12">
+                            <div class="page-header-title">
+                                <h5 class="m-b-10">Collect Certification Fee</h5>
+                            </div>
+                            <ul class="breadcrumb">
+                                <li class="breadcrumb-item">
+                                    <a asp-action="Index" asp-controller="Home">
+                                        <i class="feather icon-home"></i>
+                                    </a>
+                                </li>
+                                <li class="breadcrumb-item">
+                                    <a asp-action="Index">Fee Management</a>
+                                </li>
+                                <li class="breadcrumb-item">
+                                    <a asp-action="CertificationFees">Certification Fees</a>
+                                </li>
+                                <li class="breadcrumb-item">Collect Fee</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Student Fee Summary -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Certification Fee Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted">Registration No.</small>
+                        <div class="font-weight-bold">@Model.RegistrationNumber</div>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">Student Name</small>
+                        <div class="font-weight-bold">@Model.StudentName</div>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">Trade</small>
+                        <div>@Model.TradeName</div>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">Session</small>
+                        <div>@Model.SessionName</div>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">Qualification</small>
+                        <div>@Model.PreviousQualification</div>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">Qualification Level</small>
+                        <div>
+                            @if (Model.QualificationLevel == "UnderMatric")
+                            {
+                                <span class="badge badge-info">Under Matric</span>
+                            }
+                            else if (Model.QualificationLevel == "Matric")
+                            {
+                                <span class="badge badge-primary">Matric</span>
+                            }
+                            else if (Model.QualificationLevel == "Intermediate")
+                            {
+                                <span class="badge badge-success">Intermediate</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-warning">Above Intermediate</span>
+                            }
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row text-center">
+                        <div class="col-12 mb-3">
+                            <small class="text-muted">Total Certification Fee</small>
+                            <div class="h5 text-primary">₨@Model.CertificationFee.ToString("N0")</div>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Paid</small>
+                            <div class="h6 text-success">₨@Model.CertificationFeePaid.ToString("N0")</div>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Remaining</small>
+                            <div class="h6 text-danger">₨@Model.RemainingAmount.ToString("N0")</div>
+                        </div>
+                    </div>
+                    <div class="progress mt-3" style="height: 8px;">
+                        @{
+                            var progressPercentage = Model.CertificationFee > 0 ? (Model.CertificationFeePaid / Model.CertificationFee) * 100 : 0;
+                        }
+                        <div class="progress-bar bg-success" role="progressbar" style="width: @progressPercentage%"></div>
+                    </div>
+                    <small class="text-muted">@progressPercentage.ToString("F1")% paid</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fee Collection Form -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Certification Fee Payment Collection</h5>
+                    <div class="float-right">
+                        <a asp-action="CertificationFees" class="btn btn-secondary btn-sm">
+                            <i class="feather icon-arrow-left"></i> Back to List
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="feather icon-info"></i>
+                        <strong>Note:</strong> This is for collecting certification fee only. Regular admission fees are collected separately.
+                    </div>
+
+                    <form asp-action="CollectCertificationFee" method="post">
+                        <input type="hidden" asp-for="StudentId" />
+                        <input type="hidden" asp-for="StudentName" />
+                        <input type="hidden" asp-for="RegistrationNumber" />
+                        <input type="hidden" asp-for="TradeName" />
+                        <input type="hidden" asp-for="SessionName" />
+                        <input type="hidden" asp-for="PreviousQualification" />
+                        <input type="hidden" asp-for="QualificationLevel" />
+                        <input type="hidden" asp-for="CertificationFee" />
+                        <input type="hidden" asp-for="CertificationFeePaid" />
+                        <input type="hidden" asp-for="RemainingAmount" />
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="Amount" class="form-label required">Payment Amount (₨)</label>
+                                    <input asp-for="Amount" class="form-control" placeholder="Enter amount" 
+                                           max="@Model.RemainingAmount" step="0.01" />
+                                    <span asp-validation-for="Amount" class="text-danger"></span>
+                                    <small class="form-text text-muted">
+                                        Maximum: ₨@Model.RemainingAmount.ToString("N0")
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="PaymentDate" class="form-label required">Payment Date</label>
+                                    <input asp-for="PaymentDate" class="form-control" type="date" />
+                                    <span asp-validation-for="PaymentDate" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="PaymentMethod" class="form-label required">Payment Method</label>
+                                    <select asp-for="PaymentMethod" class="form-control">
+                                        <option value="">Select Payment Method</option>
+                                        <option value="Cash">Cash</option>
+                                        <option value="Bank Transfer">Bank Transfer</option>
+                                        <option value="Cheque">Cheque</option>
+                                        <option value="Online Payment">Online Payment</option>
+                                        <option value="Card">Card Payment</option>
+                                    </select>
+                                    <span asp-validation-for="PaymentMethod" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="Remarks" class="form-label">Remarks (Optional)</label>
+                            <textarea asp-for="Remarks" class="form-control" rows="3" 
+                                      placeholder="Any additional notes about this payment..."></textarea>
+                            <span asp-validation-for="Remarks" class="text-danger"></span>
+                        </div>
+
+                        <!-- Quick Amount Buttons -->
+                        <div class="form-group">
+                            <label class="form-label">Quick Amount Selection</label>
+                            <div>
+                                @if (Model.RemainingAmount >= 500)
+                                {
+                                    <button type="button" class="btn btn-outline-primary btn-sm me-2 quick-amount" 
+                                            data-amount="500">₨500</button>
+                                }
+                                @if (Model.RemainingAmount >= 1000)
+                                {
+                                    <button type="button" class="btn btn-outline-primary btn-sm me-2 quick-amount" 
+                                            data-amount="1000">₨1,000</button>
+                                }
+                                @if (Model.RemainingAmount >= 1500)
+                                {
+                                    <button type="button" class="btn btn-outline-primary btn-sm me-2 quick-amount" 
+                                            data-amount="1500">₨1,500</button>
+                                }
+                                @if (Model.RemainingAmount >= 2000)
+                                {
+                                    <button type="button" class="btn btn-outline-primary btn-sm me-2 quick-amount" 
+                                            data-amount="2000">₨2,000</button>
+                                }
+                                <button type="button" class="btn btn-outline-success btn-sm quick-amount" 
+                                        data-amount="@Model.RemainingAmount">Full Payment (₨@Model.RemainingAmount.ToString("N0"))</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group text-center mt-4">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="feather icon-dollar-sign"></i> Collect Certification Fee
+                            </button>
+                            <a asp-action="CertificationFees" class="btn btn-secondary btn-lg ml-2">
+                                <i class="feather icon-x"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function() {
+            // Handle quick amount selection
+            $('.quick-amount').click(function() {
+                var amount = $(this).data('amount');
+                $('#Amount').val(amount);
+                $('.quick-amount').removeClass('btn-primary').addClass('btn-outline-primary');
+                $(this).removeClass('btn-outline-primary').addClass('btn-primary');
+            });
+            
+            // Format amount input
+            $('#Amount').on('blur', function() {
+                var val = parseFloat($(this).val());
+                if (!isNaN(val)) {
+                    $(this).val(val.toFixed(2));
+                }
+            });
+        });
+    </script>
+}

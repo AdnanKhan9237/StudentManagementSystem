@@ -1,0 +1,201 @@
+@model ApplyCertificationFeeViewModel
+
+@{
+    ViewData["Title"] = $"Apply Certification Fee - {Model.StudentName}";
+    Layout = "~/Views/Shared/_ModernLayout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-header">
+                <div class="page-block">
+                    <div class="row align-items-center">
+                        <div class="col-md-12">
+                            <div class="page-header-title">
+                                <h5 class="m-b-10">Apply Certification Fee</h5>
+                            </div>
+                            <ul class="breadcrumb">
+                                <li class="breadcrumb-item">
+                                    <a asp-action="Index" asp-controller="Home">
+                                        <i class="feather icon-home"></i>
+                                    </a>
+                                </li>
+                                <li class="breadcrumb-item">
+                                    <a asp-action="Index">Fee Management</a>
+                                </li>
+                                <li class="breadcrumb-item">
+                                    <a asp-action="CertificationFees">Certification Fees</a>
+                                </li>
+                                <li class="breadcrumb-item">Apply Fee</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Apply Certification Fee</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.IsAlreadyApplied)
+                    {
+                        <div class="alert alert-warning">
+                            <i class="feather icon-alert-triangle"></i>
+                            Certification fee has already been applied to this student on @Model.AppliedDate?.ToString("MMMM dd, yyyy").
+                        </div>
+                        <div class="text-center">
+                            <a asp-action="CertificationFees" class="btn btn-secondary">
+                                <i class="feather icon-arrow-left"></i> Back to List
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <form asp-action="ApplyCertificationFee" asp-route-id="@Model.StudentId" method="post">
+                            @Html.AntiForgeryToken()
+                            
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="text-muted small">Registration Number</label>
+                                        <div class="font-weight-bold">@Model.RegistrationNumber</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="text-muted small">Student Name</label>
+                                        <div class="font-weight-bold">@Model.StudentName</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="text-muted small">Previous Qualification</label>
+                                        <div>@Model.PreviousQualification</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="text-muted small">Qualification Level</label>
+                                        <div>
+                                            @if (Model.QualificationLevel == "UnderMatric")
+                                            {
+                                                <span class="badge badge-info">Under Matric</span>
+                                            }
+                                            else if (Model.QualificationLevel == "Matric")
+                                            {
+                                                <span class="badge badge-primary">Matric</span>
+                                            }
+                                            else if (Model.QualificationLevel == "Intermediate")
+                                            {
+                                                <span class="badge badge-success">Intermediate</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge badge-warning">Above Intermediate</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr>
+
+                            <div class="alert alert-info">
+                                <h5 class="alert-heading">
+                                    <i class="feather icon-info"></i> Certification Fee Guidelines
+                                </h5>
+                                <p class="mb-2">
+                                    Typical certification fees based on qualification level:
+                                </p>
+                                <ul class="mb-2">
+                                    <li>Under Matric: ₨1,500</li>
+                                    <li>Matric/Intermediate: ₨2,000</li>
+                                    <li>Above Intermediate: ₨3,000</li>
+                                </ul>
+                                <p class="mb-0">
+                                    <strong>Note:</strong> You can enter a different amount if the fee has changed or for special cases.
+                                </p>
+                            </div>
+
+                            <div class="alert alert-success">
+                                <strong>Suggested Certification Fee:</strong> ₨@Model.CertificationFeeAmount.ToString("N0")
+                            </div>
+
+                            <div class="form-group">
+                                <label for="certificationFeeAmount" class="form-label required">Certification Fee Amount (₨)</label>
+                                <input type="number" name="certificationFeeAmount" id="certificationFeeAmount" 
+                                       class="form-control" value="@Model.CertificationFeeAmount" 
+                                       min="0" step="0.01" required />
+                                <small class="form-text text-muted">
+                                    Enter the certification fee amount. Default value is based on qualification level.
+                                </small>
+                            </div>
+
+                            <!-- Quick Amount Buttons -->
+                            <div class="form-group">
+                                <label class="form-label">Quick Amount Selection</label>
+                                <div>
+                                    <button type="button" class="btn btn-outline-primary btn-sm me-2 quick-fee" 
+                                            data-amount="1500">₨1,500</button>
+                                    <button type="button" class="btn btn-outline-primary btn-sm me-2 quick-fee" 
+                                            data-amount="2000">₨2,000</button>
+                                    <button type="button" class="btn btn-outline-primary btn-sm me-2 quick-fee" 
+                                            data-amount="2500">₨2,500</button>
+                                    <button type="button" class="btn btn-outline-primary btn-sm me-2 quick-fee" 
+                                            data-amount="3000">₨3,000</button>
+                                    <button type="button" class="btn btn-outline-success btn-sm quick-fee" 
+                                            data-amount="@Model.CertificationFeeAmount">Suggested (₨@Model.CertificationFeeAmount.ToString("N0"))</button>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-warning">
+                                <i class="feather icon-alert-circle"></i>
+                                <strong>Note:</strong> Once applied, this certification fee will be added to the student's account and can be collected separately.
+                            </div>
+
+                            <div class="form-group text-center">
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    <i class="feather icon-check"></i> Apply Certification Fee
+                                </button>
+                                <a asp-action="CertificationFees" class="btn btn-secondary btn-lg ml-2">
+                                    <i class="feather icon-x"></i> Cancel
+                                </a>
+                            </div>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Handle quick fee amount selection
+            $('.quick-fee').click(function() {
+                var amount = $(this).data('amount');
+                $('#certificationFeeAmount').val(amount);
+                $('.quick-fee').removeClass('btn-primary btn-success').addClass('btn-outline-primary');
+                $(this).removeClass('btn-outline-primary btn-outline-success').addClass('btn-primary');
+            });
+            
+            // Highlight the suggested amount button on load
+            var currentAmount = parseFloat($('#certificationFeeAmount').val());
+            $('.quick-fee').each(function() {
+                if (parseFloat($(this).data('amount')) === currentAmount) {
+                    $(this).removeClass('btn-outline-primary btn-outline-success').addClass('btn-primary');
+                }
+            });
+        });
+    </script>
+}

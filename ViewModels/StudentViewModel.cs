@@ -15,9 +15,8 @@ public class StudentViewModel
     [Display(Name = "First Name")]
     public string FirstName { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Last Name is required")]
-    [Display(Name = "Last Name")]
-    public string LastName { get; set; } = string.Empty;
+    [Display(Name = "Last Name (Optional for single names)")]
+    public string? LastName { get; set; }
 
     [Display(Name = "Father Name")]
     public string? FatherName { get; set; }
@@ -124,7 +123,7 @@ public class StudentViewModel
     public SelectList? GenderOptions { get; set; }
     public SelectList? StatusOptions { get; set; }
 
-    public string FullName => $"{FirstName} {LastName}";
+    public string FullName => string.IsNullOrWhiteSpace(LastName) ? FirstName : $"{FirstName} {LastName}";
     public int Age => DateTime.Now.Year - DateOfBirth.Year;
 }
 

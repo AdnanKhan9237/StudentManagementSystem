@@ -373,6 +373,9 @@ namespace StudentManagementSystem.Migrations
                     b.Property<TimeSpan?>("TimeOut")
                         .HasColumnType("time");
 
+                    b.Property<int?>("TimingId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BatchId");
@@ -384,6 +387,8 @@ namespace StudentManagementSystem.Migrations
                     b.HasIndex("StudentId");
 
                     b.HasIndex("TeacherId");
+
+                    b.HasIndex("TimingId");
 
                     b.ToTable("Attendances");
                 });
@@ -692,6 +697,55 @@ namespace StudentManagementSystem.Migrations
                     b.ToTable("Certificates");
                 });
 
+            modelBuilder.Entity("StudentManagementSystem.Models.Entities.CertificationFeeConfig", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("FeeAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("QualificationLevel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CertificationFeeConfigs");
+                });
+
             modelBuilder.Entity("StudentManagementSystem.Models.Entities.Enrollment", b =>
                 {
                     b.Property<int>("Id")
@@ -946,6 +1000,11 @@ namespace StudentManagementSystem.Migrations
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("FeeType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("ModifiedBy")
                         .IsRequired()
@@ -1298,6 +1357,12 @@ namespace StudentManagementSystem.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<DateTime?>("RegistrationEndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("RegistrationStartDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("SessionType")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1336,6 +1401,31 @@ namespace StudentManagementSystem.Migrations
                     b.Property<string>("CNIC")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<decimal>("CertificationFee")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("CertificationFeeAppliedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("CertificationFeePaid")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("CertificationHandedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("CertificationReadyDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CertificationRemarks")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("CertificationStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("City")
                         .HasMaxLength(100)
@@ -1384,11 +1474,13 @@ namespace StudentManagementSystem.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsCertificationFeeApplicable")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
                     b.Property<string>("LastName")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -1937,6 +2029,10 @@ namespace StudentManagementSystem.Migrations
                         .WithMany("AttendanceRecords")
                         .HasForeignKey("TeacherId");
 
+                    b.HasOne("StudentManagementSystem.Models.Entities.Timing", "Timing")
+                        .WithMany()
+                        .HasForeignKey("TimingId");
+
                     b.Navigation("Batch");
 
                     b.Navigation("Enrollment");
@@ -1944,6 +2040,8 @@ namespace StudentManagementSystem.Migrations
                     b.Navigation("MarkedByUser");
 
                     b.Navigation("Student");
+
+                    b.Navigation("Timing");
                 });
 
             modelBuilder.Entity("StudentManagementSystem.Models.Entities.Batch", b =>

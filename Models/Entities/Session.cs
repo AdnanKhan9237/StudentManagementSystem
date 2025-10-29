@@ -13,7 +13,12 @@ public class Session : BaseEntity
     
     public DateTime StartDate { get; set; }
     
-    public DateTime EndDate { get; set; }
+public DateTime EndDate { get; set; }
+
+    // Optional registration window
+    public DateTime? RegistrationStartDate { get; set; }
+
+    public DateTime? RegistrationEndDate { get; set; }
     
     public bool IsCurrentSession { get; set; }
     

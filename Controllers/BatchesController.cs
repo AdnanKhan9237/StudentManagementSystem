@@ -135,7 +135,21 @@ public class BatchesController : Controller
             return NotFound();
         }
 
-        var model = new BatchViewModel
+// Compute enrolled students from Students table (BatchId)
+var enrolledStudents = await _context.Students
+    .Where(s => s.BatchId == batch.Id && !s.IsDeleted)
+    .Select(s => new StudentSummaryViewModel
+    {
+        Id = s.Id,
+        StudentCode = s.StudentCode,
+        FullName = s.FirstName + " " + s.LastName,
+        Email = s.Email ?? string.Empty,
+        EnrollmentDate = s.CreatedDate
+    })
+    .OrderBy(s => s.FullName)
+    .ToListAsync();
+
+var model = new BatchViewModel
         {
             Id = batch.Id,
             BatchCode = batch.BatchCode,
@@ -152,23 +166,13 @@ public class BatchesController : Controller
             StartDate = batch.StartDate,
             EndDate = batch.EndDate,
             MaxStudents = batch.MaxStudents,
-            CurrentStudents = batch.Students.Count,
+            CurrentStudents = enrolledStudents.Count,
             Description = batch.Description,
             CreatedDate = batch.CreatedDate,
             CreatedBy = batch.CreatedBy,
             ModifiedDate = batch.ModifiedDate,
             ModifiedBy = batch.ModifiedBy,
-            EnrolledStudents = batch.Students
-                .Select(bs => new StudentSummaryViewModel
-                {
-                    Id = bs.Student.Id,
-                    StudentCode = bs.Student.StudentCode,
-                    FullName = $"{bs.Student.FirstName} {bs.Student.LastName}",
-                    Email = bs.Student.Email ?? string.Empty,
-                    EnrollmentDate = bs.EnrollmentDate
-                })
-                .OrderBy(s => s.FullName)
-                .ToList()
+            EnrolledStudents = enrolledStudents
         };
 
         return View(model);
@@ -284,14 +288,15 @@ public class BatchesController : Controller
                 }
             }
 
-            var batch = new Batch
+var batch = new Batch
             {
                 BatchCode = model.BatchCode,
                 BatchName = model.BatchName,
                 SessionId = model.SessionId,
                 TradeId = model.TradeId,
                 RoomId = model.RoomId,
-                TimingId = model.TimingId,
+                // Set primary timing to first selected for backward compatibility with existing relationship
+                TimingId = (model.SelectedTimingIds != null && model.SelectedTimingIds.Any()) ? model.SelectedTimingIds.First() : model.TimingId,
                 Status = model.Status,
                 StartDate = model.StartDate,
                 EndDate = model.EndDate,
@@ -366,7 +371,12 @@ public class BatchesController : Controller
             return NotFound();
         }
 
-        var model = new BatchViewModel
+// Load existing batch-timing selections
+var existingBatchTimings = await _context.BatchTimings
+    .Where(bt => bt.BatchId == batch.Id)
+    .ToListAsync();
+
+var model = new BatchViewModel
         {
             Id = batch.Id,
             BatchCode = batch.BatchCode,
@@ -379,7 +389,14 @@ public class BatchesController : Controller
             StartDate = batch.StartDate,
             EndDate = batch.EndDate,
             MaxStudents = batch.MaxStudents,
-            Description = batch.Description
+            Description = batch.Description,
+            SelectedTimingIds = existingBatchTimings.Select(x => x.TimingId).ToList(),
+            BatchTimings = existingBatchTimings.Select(x => new BatchTimingViewModel
+            {
+                BatchId = x.BatchId,
+                TimingId = x.TimingId,
+                MaxStudents = x.MaxStudents
+            }).ToList()
         };
 
         await PopulateDropDowns(model);
@@ -396,8 +413,26 @@ public class BatchesController : Controller
             return NotFound();
         }
 
-        if (ModelState.IsValid)
+if (ModelState.IsValid)
         {
+            // Calculate max students from selected timings BEFORE validation (similar to Create)
+            int calculatedMaxStudents = 0;
+            if (model.SelectedTimingIds != null && model.SelectedTimingIds.Any())
+            {
+                foreach (var timingId in model.SelectedTimingIds)
+                {
+                    var maxStudentsKey = $"TimingMaxStudents_{timingId}";
+                    if (Request.Form.ContainsKey(maxStudentsKey) && int.TryParse(Request.Form[maxStudentsKey], out int timingMaxStudents))
+                    {
+                        calculatedMaxStudents += timingMaxStudents;
+                    }
+                }
+                model.MaxStudents = calculatedMaxStudents;
+            }
+
+            // Remove MaxStudents validation since we calculate it
+            ModelState.Remove("MaxStudents");
+
             // Check if batch code is unique (excluding current batch)
             if (await _context.Batches.AnyAsync(b => b.BatchCode == model.BatchCode && b.Id != id && !b.IsDeleted))
             {
@@ -426,7 +461,7 @@ public class BatchesController : Controller
                 }
             }
 
-            var batch = await _context.Batches.FindAsync(id);
+var batch = await _context.Batches.FindAsync(id);
             if (batch == null || batch.IsDeleted)
             {
                 return NotFound();
@@ -437,7 +472,8 @@ public class BatchesController : Controller
             batch.SessionId = model.SessionId;
             batch.TradeId = model.TradeId;
             batch.RoomId = model.RoomId;
-            batch.TimingId = model.TimingId;
+            // Set primary timing as first selected for compatibility
+            batch.TimingId = (model.SelectedTimingIds != null && model.SelectedTimingIds.Any()) ? model.SelectedTimingIds.First() : model.TimingId;
             batch.Status = model.Status;
             batch.StartDate = model.StartDate;
             batch.EndDate = model.EndDate;
@@ -445,6 +481,32 @@ public class BatchesController : Controller
             batch.Description = model.Description;
             batch.ModifiedDate = DateTime.UtcNow;
             batch.ModifiedBy = User.Identity?.Name ?? "System";
+
+            // Update BatchTiming mappings: remove existing and add current selections
+            var existingBatchTimings = await _context.BatchTimings.Where(bt => bt.BatchId == batch.Id).ToListAsync();
+            _context.BatchTimings.RemoveRange(existingBatchTimings);
+
+            if (model.SelectedTimingIds != null && model.SelectedTimingIds.Any())
+            {
+                foreach (var timingId in model.SelectedTimingIds)
+                {
+                    var maxStudentsKey = $"TimingMaxStudents_{timingId}";
+                    int timingMaxStudents = model.MaxStudents; // default fallback
+                    if (Request.Form.ContainsKey(maxStudentsKey))
+                    {
+                        int.TryParse(Request.Form[maxStudentsKey], out timingMaxStudents);
+                    }
+
+                    _context.BatchTimings.Add(new BatchTiming
+                    {
+                        BatchId = batch.Id,
+                        TimingId = timingId,
+                        MaxStudents = timingMaxStudents,
+                        CreatedDate = DateTime.UtcNow,
+                        CreatedBy = User.Identity?.Name ?? "System"
+                    });
+                }
+            }
 
             try
             {
@@ -471,17 +533,18 @@ public class BatchesController : Controller
     // GET: Batches/Delete/5
     public async Task<IActionResult> Delete(int id)
     {
-        var batch = await _context.Batches
+var batch = await _context.Batches
             .Include(b => b.Session)
             .Include(b => b.Trade)
             .Include(b => b.Room)
-            .Include(b => b.Students.Where(s => !s.IsDeleted))
             .FirstOrDefaultAsync(b => b.Id == id && !b.IsDeleted);
 
         if (batch == null)
         {
             return NotFound();
         }
+
+var currentStudents = await _context.Students.CountAsync(s => s.BatchId == batch.Id && !s.IsDeleted);
 
         var model = new BatchViewModel
         {
@@ -492,7 +555,7 @@ public class BatchesController : Controller
             TradeName = batch.Trade.NameEnglish,
             RoomNumber = batch.Room?.RoomNumber ?? "Not Assigned",
             Status = batch.Status,
-            CurrentStudents = batch.Students.Count
+            CurrentStudents = currentStudents
         };
 
         return View(model);

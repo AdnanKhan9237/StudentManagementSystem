@@ -1,0 +1,233 @@
+@model UpdateCertificationStatusViewModel
+
+@{
+    ViewData["Title"] = $"Update Certification Status - {Model.StudentName}";
+    Layout = "~/Views/Shared/_ModernLayout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-header">
+                <div class="page-block">
+                    <div class="row align-items-center">
+                        <div class="col-md-12">
+                            <div class="page-header-title">
+                                <h5 class="m-b-10">Update Certification Status</h5>
+                            </div>
+                            <ul class="breadcrumb">
+                                <li class="breadcrumb-item">
+                                    <a asp-action="Index" asp-controller="Home">
+                                        <i class="feather icon-home"></i>
+                                    </a>
+                                </li>
+                                <li class="breadcrumb-item">
+                                    <a asp-action="Index">Fee Management</a>
+                                </li>
+                                <li class="breadcrumb-item">
+                                    <a asp-action="CertificationFees">Certification Fees</a>
+                                </li>
+                                <li class="breadcrumb-item">Update Status</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="feather icon-alert-circle"></i> @TempData["ErrorMessage"]
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- Student Summary -->\n        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Student Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted">Registration No.</small>
+                        <div class="font-weight-bold">@Model.RegistrationNumber</div>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">Student Name</small>
+                        <div class="font-weight-bold">@Model.StudentName</div>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">Trade</small>
+                        <div>@Model.TradeName</div>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">Qualification</small>
+                        <div>@Model.PreviousQualification</div>
+                    </div>
+                    <hr>
+                    <div class="mb-3">
+                        <small class="text-muted">Fee Payment Status</small>
+                        <div>
+                            @if (Model.FeePaymentStatus == "Paid")
+                            {
+                                <span class="badge badge-success">@Model.FeePaymentStatus</span>
+                            }
+                            else if (Model.FeePaymentStatus == "Partial")
+                            {
+                                <span class="badge badge-warning">@Model.FeePaymentStatus</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-danger">@Model.FeePaymentStatus</span>
+                            }
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.CurrentStatus))
+                    {
+                        <div class="mb-3">
+                            <small class="text-muted">Current Certification Status</small>
+                            <div class="font-weight-bold">@Model.CurrentStatus</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Update Form -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Update Physical Certification Status</h5>
+                    <div class="float-right">
+                        <a asp-action="CertificationFees" class="btn btn-secondary btn-sm">
+                            <i class="feather icon-arrow-left"></i> Back to List
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form asp-action="UpdateCertificationStatus" method="post">
+                        <input type="hidden" asp-for="StudentId" />
+                        <input type="hidden" asp-for="StudentName" />
+                        <input type="hidden" asp-for="RegistrationNumber" />
+                        <input type="hidden" asp-for="TradeName" />
+                        <input type="hidden" asp-for="PreviousQualification" />
+                        <input type="hidden" asp-for="FeePaymentStatus" />
+
+                        <div class="alert alert-info">
+                            <i class="feather icon-info"></i>
+                            <strong>Certification Status Flow:</strong> Fee Not Paid → Fee Paid → In Progress → Ready → Handed
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label asp-for="CertificationStatus" class="form-label required">Certification Status</label>
+                                    <select asp-for="CertificationStatus" class="form-control" id="certStatusSelect">
+                                        <option value="">Select Status</option>
+                                        <option value="FeeNotPaid">Fee Not Paid</option>
+                                        <option value="FeePaid">Fee Paid</option>
+                                        <option value="InProgress">In Progress (Being Processed)</option>
+                                        <option value="Ready">Ready for Collection</option>
+                                        <option value="Handed">Handed Over to Student</option>
+                                    </select>
+                                    <span asp-validation-for="CertificationStatus" class="text-danger"></span>
+                                    <small class="form-text text-muted">
+                                        Select the current status of the physical certification
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group" id="readyDateGroup">
+                                    <label asp-for="CertificationReadyDate" class="form-label">Certificate Ready Date</label>
+                                    <input asp-for="CertificationReadyDate" class="form-control" type="date" />
+                                    <span asp-validation-for="CertificationReadyDate" class="text-danger"></span>
+                                    <small class="form-text text-muted">
+                                        When the certificate became ready for collection
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group" id="handedDateGroup">
+                                    <label asp-for="CertificationHandedDate" class="form-label">Certificate Handed Date</label>
+                                    <input asp-for="CertificationHandedDate" class="form-control" type="date" />
+                                    <span asp-validation-for="CertificationHandedDate" class="text-danger"></span>
+                                    <small class="form-text text-muted">
+                                        When the certificate was handed to the student
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="CertificationRemarks" class="form-label">Remarks (Optional)</label>
+                            <textarea asp-for="CertificationRemarks" class="form-control" rows="3" 
+                                      placeholder="Any additional notes about the certification..."></textarea>
+                            <span asp-validation-for="CertificationRemarks" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group text-center">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="feather icon-save"></i> Update Status
+                            </button>
+                            <a asp-action="CertificationFees" class="btn btn-secondary btn-lg ml-2">
+                                <i class="feather icon-x"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Status History/Guide -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">Status Definitions</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2"><strong>Fee Not Paid:</strong> Certification fee has not been paid yet</li>
+                        <li class="mb-2"><strong>Fee Paid:</strong> Certification fee has been fully paid</li>
+                        <li class="mb-2"><strong>In Progress:</strong> Physical certificate is being processed/printed</li>
+                        <li class="mb-2"><strong>Ready:</strong> Physical certificate is ready for student collection</li>
+                        <li class="mb-2"><strong>Handed:</strong> Physical certificate has been handed over to the student</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function() {
+            // Show/hide date fields based on selected status
+            function updateDateFields() {
+                var status = $('#certStatusSelect').val();
+                
+                // Reset visibility
+                $('#readyDateGroup').hide();
+                $('#handedDateGroup').hide();
+                
+                if (status === 'Ready' || status === 'Handed') {
+                    $('#readyDateGroup').show();
+                }
+                
+                if (status === 'Handed') {
+                    $('#handedDateGroup').show();
+                }
+            }
+            
+            // Initial update
+            updateDateFields();
+            
+            // Update on change
+            $('#certStatusSelect').on('change', updateDateFields);
+        });
+    </script>
+}

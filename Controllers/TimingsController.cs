@@ -44,7 +44,7 @@ public class TimingsController : Controller
 
         var totalRecords = await query.CountAsync();
 
-        var timings = await query
+var timings = await query
             .OrderBy(t => t.StartTime)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -60,7 +60,7 @@ public class TimingsController : Controller
                 IsActive = t.IsActive,
                 CreatedDate = t.CreatedDate,
                 CreatedBy = t.CreatedBy,
-                BatchCount = _context.Batches.Count(b => b.TimingId == t.Id && !b.IsDeleted)
+                BatchCount = _context.BatchTimings.Count(bt => bt.TimingId == t.Id && !bt.IsDeleted)
             })
             .ToListAsync();
 
@@ -85,11 +85,7 @@ public class TimingsController : Controller
     // GET: Timings/Details/5
     public async Task<IActionResult> Details(int id)
     {
-        var timing = await _context.Timings
-            .Include(t => t.Batches.Where(b => !b.IsDeleted))
-            .ThenInclude(b => b.Trade)
-            .Include(t => t.Batches.Where(b => !b.IsDeleted))
-            .ThenInclude(b => b.Session)
+var timing = await _context.Timings
             .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
 
         if (timing == null)
@@ -97,7 +93,25 @@ public class TimingsController : Controller
             return NotFound();
         }
 
-        var model = new TimingViewModel
+        // Determine assigned batches via BatchTimings (supports multiple timings per batch)
+        var assignedBatchIds = await _context.BatchTimings
+            .Where(bt => bt.TimingId == id && !bt.IsDeleted)
+            .Select(bt => bt.BatchId)
+            .Distinct()
+            .ToListAsync();
+
+        var assignedBatches = await _context.Batches
+            .Where(b => assignedBatchIds.Contains(b.Id) && !b.IsDeleted)
+            .Include(b => b.Trade)
+            .Include(b => b.Session)
+            .ToListAsync();
+
+        if (timing == null)
+        {
+            return NotFound();
+        }
+
+var model = new TimingViewModel
         {
             Id = timing.Id,
             Name = timing.Name,
@@ -111,8 +125,8 @@ public class TimingsController : Controller
             CreatedBy = timing.CreatedBy,
             ModifiedDate = timing.ModifiedDate,
             ModifiedBy = timing.ModifiedBy,
-            BatchCount = timing.Batches.Count,
-            AssignedBatches = timing.Batches
+            BatchCount = assignedBatches.Count,
+            AssignedBatches = assignedBatches
                 .Select(b => new BatchSummaryViewModel
                 {
                     Id = b.Id,
@@ -120,7 +134,7 @@ public class TimingsController : Controller
                     BatchName = b.BatchName,
                     TradeName = b.Trade.NameEnglish,
                     SessionName = b.Session.Name,
-                    StudentCount = b.Students.Count(s => !s.IsDeleted)
+                    StudentCount = _context.Students.Count(s => s.BatchId == b.Id && !s.IsDeleted)
                 }).ToList()
         };
 
@@ -270,14 +284,15 @@ public class TimingsController : Controller
     // GET: Timings/Delete/5
     public async Task<IActionResult> Delete(int id)
     {
-        var timing = await _context.Timings
-            .Include(t => t.Batches.Where(b => !b.IsDeleted))
+var timing = await _context.Timings
             .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
 
         if (timing == null)
         {
             return NotFound();
         }
+
+var batchCount = await _context.BatchTimings.CountAsync(bt => bt.TimingId == id && !bt.IsDeleted);
 
         var model = new TimingViewModel
         {
@@ -288,7 +303,7 @@ public class TimingsController : Controller
             Shift = timing.Shift,
             Type = timing.Type,
             Description = timing.Description,
-            BatchCount = timing.Batches.Count
+            BatchCount = batchCount
         };
 
         return View(model);

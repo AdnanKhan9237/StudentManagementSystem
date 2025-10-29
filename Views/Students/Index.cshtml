@@ -8,6 +8,9 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>Students Management</h2>
     <div class="d-flex gap-2">
+        <a asp-action="ImportCsv" class="btn btn-info">
+            <i class="fas fa-file-upload"></i> Import CSV
+        </a>
         <form asp-action="ProvisionAllLogins" method="post" class="d-inline">
             @Html.AntiForgeryToken()
             <button type="submit" class="btn btn-success" title="Provision logins for all students without accounts">
@@ -39,7 +42,7 @@
 <!-- Filters -->
 <div class="card mb-4">
     <div class="card-body">
-        <form asp-action="Index" method="get" class="row g-3">
+        <form asp-action="Index" method="get" class="row g-3" id="filterForm">
             <div class="col-md-3">
                 <label class="form-label">Search</label>
                 <input asp-for="SearchTerm" class="form-control" placeholder="Name, Registration No., CNIC..." />
@@ -77,7 +80,7 @@
         <div class="d-flex justify-content-between align-items-center">
             <span>Students List (@Model.TotalRecords total)</span>
             <div class="btn-group" role="group">
-                <button type="button" class="btn btn-outline-primary btn-sm">
+                <button type="button" class="btn btn-outline-primary btn-sm" id="exportBtn">
                     <i class="fas fa-download"></i> Export
                 </button>
             </div>
@@ -270,6 +273,22 @@
         // Auto-submit form when filters change (optional)
         $('.form-select').on('change', function() {
             $(this).closest('form').submit();
+        });
+
+        // Export button functionality
+        $('#exportBtn').on('click', function() {
+            var searchTerm = $('#SearchTerm').val() || '';
+            var tradeFilter = $('#TradeFilter').val() || '';
+            var sessionFilter = $('#SessionFilter').val() || '';
+            var statusFilter = $('#StatusFilter').val() || '';
+
+            var exportUrl = '@Url.Action("Export", "Students")' + 
+                '?searchTerm=' + encodeURIComponent(searchTerm) +
+                '&tradeFilter=' + encodeURIComponent(tradeFilter) +
+                '&sessionFilter=' + encodeURIComponent(sessionFilter) +
+                '&statusFilter=' + encodeURIComponent(statusFilter);
+
+            window.location.href = exportUrl;
         });
     </script>
 }

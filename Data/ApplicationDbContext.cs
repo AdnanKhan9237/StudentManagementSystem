@@ -29,6 +29,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<StudentFeeAdjustment> StudentFeeAdjustments { get; set; }
     public DbSet<Teacher> Teachers { get; set; }
     public DbSet<BatchTiming> BatchTimings { get; set; }
+    public DbSet<CertificationFeeConfig> CertificationFeeConfigs { get; set; }
 
     // New: Enrollment to support multi-session/trade per student
     public DbSet<Enrollment> Enrollments { get; set; }
@@ -53,6 +54,14 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<Student>()
             .Property(s => s.PreviousMarks)
             .HasPrecision(5, 2);
+
+        builder.Entity<Student>()
+            .Property(s => s.CertificationFee)
+            .HasPrecision(18, 2);
+
+        builder.Entity<Student>()
+            .Property(s => s.CertificationFeePaid)
+            .HasPrecision(18, 2);
 
         builder.Entity<Exam>()
             .Property(e => e.TotalMarks)
@@ -141,6 +150,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         
         builder.Entity<Teacher>()
             .Property(t => t.Salary)
+            .HasPrecision(18, 2);
+        
+        builder.Entity<CertificationFeeConfig>()
+            .Property(c => c.FeeAmount)
             .HasPrecision(18, 2);
 
         // Configure indexes for performance

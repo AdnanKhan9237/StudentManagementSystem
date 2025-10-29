@@ -41,7 +41,7 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label asp-for="LastName" class="form-label"></label>
-                                <input asp-for="LastName" class="form-control" required />
+                                <input asp-for="LastName" class="form-control" />
                                 <span asp-validation-for="LastName" class="text-danger"></span>
                             </div>
                         </div>
@@ -208,11 +208,24 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label asp-for="BatchId" class="form-label"></label>
-                                @Html.DropDownListFor(m => m.BatchId, Model.Batches, "Select Batch (Optional)", new { @class = "form-select", id = "batchSelect" })
+                                @Html.DropDownListFor(m => m.BatchId, Model.Batches, "Select Batch", new { @class = "form-select", required = "required", id = "batchSelect" })
                                 <span asp-validation-for="BatchId" class="text-danger"></span>
                             </div>
                         </div>
                         <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="TimingId" class="form-label"></label>
+                                <select asp-for="TimingId" class="form-select" id="timingSelect" required>
+                                    <option value="">Select Batch First</option>
+                                </select>
+                                <span asp-validation-for="TimingId" class="text-danger"></span>
+                                <small class="text-muted">Available timings for selected batch</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12">
                             <div class="mb-3">
                                 <label asp-for="RegistrationNumber" class="form-label"></label>
                                 <input asp-for="RegistrationNumber" class="form-control" readonly style="background-color: #e9ecef;" />
@@ -406,6 +419,110 @@
                 
                 $('#studentAge').text(age);
             });
+
+            // Load batches when trade/session changes
+            $('#tradeSelect, #sessionSelect').on('change', function() {
+                var tradeId = $('#tradeSelect').val();
+                var sessionId = $('#sessionSelect').val();
+                
+                if (tradeId && sessionId) {
+                    loadBatches(tradeId, sessionId);
+                } else {
+                    $('#batchSelect').html('<option value="">Select Batch</option>');
+                    $('#timingSelect').html('<option value="">Select Batch First</option>');
+                }
+            });
+            
+            // Load timings when batch changes
+            $('#batchSelect').on('change', function() {
+                var batchId = $(this).val();
+                
+                if (batchId) {
+                    loadTimings(batchId);
+                } else {
+                    $('#timingSelect').html('<option value="">Select Batch First</option>');
+                }
+            });
+
+            // Load initial timings if batch is already selected
+            var initialBatchId = $('#batchSelect').val();
+            if (initialBatchId) {
+                loadTimings(initialBatchId);
+            }
+            
+            // Function to load batches
+            function loadBatches(tradeId, sessionId) {
+                console.log('Loading batches for TradeId:', tradeId, 'SessionId:', sessionId);
+                
+                $.ajax({
+                    url: '@Url.Action("GetBatches", "Students")',
+                    type: 'GET',
+                    data: {
+                        tradeId: tradeId,
+                        sessionId: sessionId
+                    },
+                    success: function(data) {
+                        console.log('Batches loaded:', data);
+                        
+                        var batchSelect = $('#batchSelect');
+                        var currentBatchId = batchSelect.val();
+                        batchSelect.html('<option value="">Select Batch</option>');
+                        
+                        if (data && data.length > 0) {
+                            $.each(data, function(index, batch) {
+                                batchSelect.append('<option value="' + batch.value + '">' + batch.text + '</option>');
+                            });
+                            // Restore selected batch if it's still in the list
+                            if (currentBatchId) {
+                                batchSelect.val(currentBatchId);
+                            }
+                        } else {
+                            batchSelect.append('<option value="" disabled>No batches available</option>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error loading batches:', error);
+                        $('#batchSelect').html('<option value="">Select Batch</option><option value="" disabled>Error loading batches</option>');
+                    }
+                });
+            }
+            
+            // Function to load timings for a batch
+            function loadTimings(batchId) {
+                console.log('Loading timings for BatchId:', batchId);
+                
+                $.ajax({
+                    url: '@Url.Action("GetBatchTimings", "Students")',
+                    type: 'GET',
+                    data: {
+                        batchId: batchId
+                    },
+                    success: function(data) {
+                        console.log('Timings loaded:', data);
+                        
+                        var timingSelect = $('#timingSelect');
+                        var currentTimingId = @(Model.TimingId ?? 0);
+                        timingSelect.html('<option value="">Select Timing</option>');
+                        
+                        if (data && data.length > 0) {
+                            $.each(data, function(index, timing) {
+                                var displayText = timing.text;
+                                if (timing.availableSeats !== undefined) {
+                                    displayText += ' (Available: ' + timing.availableSeats + '/' + timing.maxStudents + ')';
+                                }
+                                var selected = (timing.value == currentTimingId) ? ' selected' : '';
+                                timingSelect.append('<option value="' + timing.value + '"' + selected + '>' + displayText + '</option>');
+                            });
+                        } else {
+                            timingSelect.append('<option value="" disabled>No timings available for this batch</option>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error loading timings:', error);
+                        $('#timingSelect').html('<option value="">Select Timing</option><option value="" disabled>Error loading timings</option>');
+                    }
+                });
+            }
         });
     </script>
 }
