@@ -181,12 +181,41 @@
                 </div>
                 <div class="card-body text-center">
                     <div class="mb-3">
-                        <div class="photo-preview mb-3" style="display: none;">
-                            <img id="photoPreview" src="#" alt="Photo Preview" class="img-fluid rounded" style="max-height: 200px;">
+                        <!-- Photo Preview -->
+                        <div id="photoPreviewContainer" class="mb-3">
+                            <div class="border rounded d-flex align-items-center justify-content-center" style="height: 200px; background-color: #f8f9fa;">
+                                <div class="text-muted">
+                                    <i class="fas fa-user fa-4x mb-2"></i>
+                                    <p>No photo selected</p>
+                                </div>
+                            </div>
                         </div>
-                        <input asp-for="Photo" class="form-control" type="file" accept="image/*" onchange="previewPhoto(this)">
+                        
+                        <!-- Camera Video Stream (hidden by default) -->
+                        <div id="teacherCameraContainer" style="display: none;">
+                            <video id="teacherCameraVideo" width="100%" height="200" autoplay class="border rounded mb-2"></video>
+                            <canvas id="teacherCameraCanvas" style="display: none;"></canvas>
+                        </div>
+                        
+                        <!-- Buttons -->
+                        <div class="btn-group w-100 mb-2" role="group">
+                            <button type="button" class="btn btn-outline-primary" id="openTeacherCameraBtn">
+                                <i class="fas fa-camera"></i> Open Camera
+                            </button>
+                            <button type="button" class="btn btn-outline-success" id="captureTeacherPhotoBtn" style="display: none;">
+                                <i class="fas fa-circle"></i> Capture
+                            </button>
+                            <button type="button" class="btn btn-outline-danger" id="closeTeacherCameraBtn" style="display: none;">
+                                <i class="fas fa-times"></i> Close
+                            </button>
+                        </div>
+                        
+                        <div class="text-muted mb-2">OR</div>
+                        
+                        <!-- File Upload -->
+                        <input asp-for="Photo" class="form-control" type="file" accept="image/*" id="teacherPhotoInput">
                         <span asp-validation-for="Photo" class="text-danger"></span>
-                        <small class="form-text text-muted">Max file size: 2MB. Supported formats: JPG, PNG</small>
+                        <small class="form-text text-muted">Max file size: 250KB. Supported formats: JPG, PNG</small>
                     </div>
                 </div>
             </div>
@@ -287,22 +316,178 @@
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
     <script>
-        function previewPhoto(input) {
-            const preview = document.getElementById('photoPreview');
-            const previewContainer = document.querySelector('.photo-preview');
-            
-            if (input.files && input.files[0]) {
+        // Function to compress image to under 250KB
+        async function compressImage(file, maxSizeKB = 250) {
+            return new Promise((resolve, reject) => {
                 const reader = new FileReader();
-                
                 reader.onload = function(e) {
-                    preview.src = e.target.result;
-                    previewContainer.style.display = 'block';
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        
+                        let quality = 0.9;
+                        
+                        function tryCompress() {
+                            canvas.toBlob(function(blob) {
+                                const fileSizeKB = blob.size / 1024;
+                                console.log(`Compression - Quality: ${quality.toFixed(2)}, Size: ${fileSizeKB.toFixed(2)}KB`);
+                                
+                                if (fileSizeKB <= maxSizeKB || quality <= 0.1) {
+                                    const compressedFile = new File([blob], file.name, { type: 'image/jpeg' });
+                                    resolve(compressedFile);
+                                } else {
+                                    quality -= 0.1;
+                                    tryCompress();
+                                }
+                            }, 'image/jpeg', quality);
+                        }
+                        
+                        tryCompress();
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
                 };
-                
-                reader.readAsDataURL(input.files[0]);
-            } else {
-                previewContainer.style.display = 'none';
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Photo preview from file input with compression
+        document.getElementById('teacherPhotoInput').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                try {
+                    // Show loading
+                    document.getElementById('photoPreviewContainer').innerHTML =
+                        '<div class="border rounded d-flex align-items-center justify-content-center" style="height: 200px; background-color: #f8f9fa;">' +
+                        '<div class="text-muted"><i class="fas fa-spinner fa-spin fa-3x mb-2"></i><p>Compressing image...</p></div></div>';
+                    
+                    // Compress the image
+                    const compressedFile = await compressImage(file);
+                    const fileSizeKB = (compressedFile.size / 1024).toFixed(2);
+                    
+                    // Update file input with compressed file
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(compressedFile);
+                    this.files = dataTransfer.files;
+                    
+                    // Show preview
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('photoPreviewContainer').innerHTML =
+                            '<img src="' + e.target.result + '" class="img-fluid rounded" style="max-height: 200px; width: 100%; object-fit: cover;" />' +
+                            '<small class="text-success mt-1 d-block">Compressed to ' + fileSizeKB + ' KB</small>';
+                    };
+                    reader.readAsDataURL(compressedFile);
+                } catch (error) {
+                    console.error('Error compressing image:', error);
+                    alert('Error processing image. Please try another file.');
+                    document.getElementById('photoPreviewContainer').innerHTML =
+                        '<div class="border rounded d-flex align-items-center justify-content-center" style="height: 200px; background-color: #f8f9fa;">' +
+                        '<div class="text-muted"><i class="fas fa-user fa-4x mb-2"></i><p>No photo selected</p></div></div>';
+                }
             }
+        });
+
+        // Camera functionality
+        let teacherCameraStream = null;
+        const teacherVideo = document.getElementById('teacherCameraVideo');
+        const teacherCanvas = document.getElementById('teacherCameraCanvas');
+        
+        // Open camera
+        document.getElementById('openTeacherCameraBtn').addEventListener('click', async function() {
+            try {
+                teacherCameraStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user'
+                    } 
+                });
+                teacherVideo.srcObject = teacherCameraStream;
+                
+                // Show camera UI
+                document.getElementById('teacherCameraContainer').style.display = 'block';
+                document.getElementById('photoPreviewContainer').style.display = 'none';
+                document.getElementById('openTeacherCameraBtn').style.display = 'none';
+                document.getElementById('captureTeacherPhotoBtn').style.display = 'inline-block';
+                document.getElementById('closeTeacherCameraBtn').style.display = 'inline-block';
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                alert('Could not access camera. Please make sure you have granted camera permissions.');
+            }
+        });
+        
+        // Capture photo from camera
+        document.getElementById('captureTeacherPhotoBtn').addEventListener('click', async function() {
+            const context = teacherCanvas.getContext('2d');
+            teacherCanvas.width = teacherVideo.videoWidth;
+            teacherCanvas.height = teacherVideo.videoHeight;
+            context.drawImage(teacherVideo, 0, 0);
+            
+            // Show loading
+            document.getElementById('photoPreviewContainer').innerHTML =
+                '<div class="border rounded d-flex align-items-center justify-content-center" style="height: 200px; background-color: #f8f9fa;">' +
+                '<div class="text-muted"><i class="fas fa-spinner fa-spin fa-3x mb-2"></i><p>Compressing photo...</p></div></div>';
+            document.getElementById('photoPreviewContainer').style.display = 'block';
+            
+            // Stop camera UI first
+            stopTeacherCamera();
+            
+            // Convert canvas to blob and create file
+            teacherCanvas.toBlob(async function(blob) {
+                try {
+                    // Create a file from the blob
+                    const file = new File([blob], 'captured-photo.jpg', { type: 'image/jpeg' });
+                    
+                    // Compress the captured image
+                    const compressedFile = await compressImage(file);
+                    const fileSizeKB = (compressedFile.size / 1024).toFixed(2);
+                    
+                    // Create a DataTransfer object to set the file input
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(compressedFile);
+                    document.getElementById('teacherPhotoInput').files = dataTransfer.files;
+                    
+                    // Display captured and compressed image
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('photoPreviewContainer').innerHTML =
+                            '<img src="' + e.target.result + '" class="img-fluid rounded" style="max-height: 200px; width: 100%; object-fit: cover;" />' +
+                            '<small class="text-success mt-1 d-block">Captured & compressed to ' + fileSizeKB + ' KB</small>';
+                    };
+                    reader.readAsDataURL(compressedFile);
+                } catch (error) {
+                    console.error('Error compressing captured photo:', error);
+                    alert('Error processing captured photo.');
+                    document.getElementById('photoPreviewContainer').innerHTML =
+                        '<div class="border rounded d-flex align-items-center justify-content-center" style="height: 200px; background-color: #f8f9fa;">' +
+                        '<div class="text-muted"><i class="fas fa-user fa-4x mb-2"></i><p>No photo selected</p></div></div>';
+                }
+            }, 'image/jpeg', 0.95);
+        });
+        
+        // Close camera
+        document.getElementById('closeTeacherCameraBtn').addEventListener('click', function() {
+            stopTeacherCamera();
+        });
+        
+        // Function to stop camera stream
+        function stopTeacherCamera() {
+            if (teacherCameraStream) {
+                teacherCameraStream.getTracks().forEach(track => track.stop());
+                teacherCameraStream = null;
+            }
+            document.getElementById('teacherCameraContainer').style.display = 'none';
+            document.getElementById('photoPreviewContainer').style.display = 'block';
+            document.getElementById('openTeacherCameraBtn').style.display = 'inline-block';
+            document.getElementById('captureTeacherPhotoBtn').style.display = 'none';
+            document.getElementById('closeTeacherCameraBtn').style.display = 'none';
         }
 
         // Auto-generate teacher code based on name
