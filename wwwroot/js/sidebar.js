@@ -3,15 +3,42 @@ document.addEventListener('DOMContentLoaded', function () {
     const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebar = document.getElementById('sidebar');
     const mainContent = document.querySelector('.main-content');
+    const body = document.body;
+    let backdrop = null;
 
     // Toggle sidebar on button click
+    function ensureBackdrop() {
+        if (!backdrop) {
+            backdrop = document.createElement('div');
+            backdrop.className = 'sidebar-backdrop';
+            backdrop.addEventListener('click', closeMobileSidebar);
+        }
+        return backdrop;
+    }
+
+    function openMobileSidebar() {
+        sidebar.classList.add('show');
+        body.classList.add('no-scroll');
+        document.body.appendChild(ensureBackdrop());
+    }
+
+    function closeMobileSidebar() {
+        sidebar.classList.remove('show');
+        body.classList.remove('no-scroll');
+        if (backdrop && backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+    }
+
     if (sidebarToggle) {
         sidebarToggle.addEventListener('click', function () {
             if (window.innerWidth > 991) {
                 sidebar.classList.toggle('collapsed');
                 mainContent.classList.toggle('expanded');
             } else {
-                sidebar.classList.toggle('show');
+                if (sidebar.classList.contains('show')) {
+                    closeMobileSidebar();
+                } else {
+                    openMobileSidebar();
+                }
             }
         });
     }
@@ -39,8 +66,15 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('click', function (e) {
         if (window.innerWidth <= 991) {
             if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
-                sidebar.classList.remove('show');
+                closeMobileSidebar();
             }
+        }
+    });
+
+    // Close on Esc
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && window.innerWidth <= 991 && sidebar.classList.contains('show')) {
+            closeMobileSidebar();
         }
     });
 
@@ -50,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function () {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(function () {
             if (window.innerWidth > 991) {
-                sidebar.classList.remove('show');
+                closeMobileSidebar();
                 sidebar.classList.remove('collapsed');
                 mainContent.classList.remove('expanded');
             }
@@ -75,5 +109,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         }
+
+        // Close sidebar after navigating on mobile
+        link.addEventListener('click', function () {
+            if (window.innerWidth <= 991) {
+                closeMobileSidebar();
+            }
+        });
     });
 });
