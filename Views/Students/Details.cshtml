@@ -11,16 +11,19 @@
     <div>
         @if (!User.IsInRole(UserRoles.Student))
         {
-            <form asp-action="ProvisionLogin" method="post" class="d-inline">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="studentId" value="@Model.Id" />
-                <button type="submit" class="btn btn-success" title="Provision login for this student">
-                    <i class="fas fa-id-badge"></i> Provision Login
-                </button>
-            </form>
-            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
-                <i class="fas fa-edit"></i> Edit
-            </a>
+            @if (User.IsInRole(UserRoles.SuperAdmin) || User.IsInRole(UserRoles.Admin) || User.IsInRole(UserRoles.Accounts))
+            {
+                <form asp-action="ProvisionLogin" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="studentId" value="@Model.Id" />
+                    <button type="submit" class="btn btn-success" title="Provision login for this student">
+                        <i class="fas fa-id-badge"></i> Provision Login
+                    </button>
+                </form>
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                    <i class="fas fa-edit"></i> Edit
+                </a>
+            }
             <a asp-action="Index" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left"></i> Back to List
             </a>

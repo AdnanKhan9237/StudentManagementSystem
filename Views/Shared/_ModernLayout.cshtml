@@ -427,7 +427,7 @@
                     }
 
                     <!-- Finance Section -->
-                    @if (User.IsInRole(UserRoles.SuperAdmin) || User.IsInRole(UserRoles.Accounts))
+                    @if (User.IsInRole(UserRoles.SuperAdmin) || User.IsInRole(UserRoles.Admin) || User.IsInRole(UserRoles.Accounts))
                     {
                         <div class="nav-section">
                             <div class="nav-section-title">Finance</div>
@@ -442,6 +442,12 @@
                                 <a class="nav-link" asp-controller="FeeManagement" asp-action="Reports">
                                     <i class="fas fa-chart-line"></i>
                                     <span>Fee Reports</span>
+                                </a>
+                            </div>
+                            <div class="nav-item">
+                                <a class="nav-link" asp-controller="FeeManagement" asp-action="CertificationFees">
+                                    <i class="fas fa-certificate"></i>
+                                    <span>Certification Fees</span>
                                 </a>
                             </div>
                         </div>

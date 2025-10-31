@@ -152,8 +152,8 @@ public class StudentsController : Controller
         return View(model);
     }
 
-    // GET: Students/Edit/5 - Accounts can edit all, Teacher can edit assigned students only
-    [Authorize(Roles = $"{UserRoles.SuperAdmin},{UserRoles.Accounts},{UserRoles.Teacher}")]
+    // GET: Students/Edit/5 - Only SuperAdmin and Accounts can edit
+    [Authorize(Roles = $"{UserRoles.SuperAdmin},{UserRoles.Accounts}")]
     public async Task<IActionResult> Edit(int id)
     {
         StudentViewModel? student;
@@ -178,10 +178,10 @@ public class StudentsController : Controller
         return View(student);
     }
 
-    // POST: Students/Edit/5 - Accounts can edit all, Teacher can edit assigned students only
+    // POST: Students/Edit/5 - Only SuperAdmin and Accounts can edit
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles = $"{UserRoles.SuperAdmin},{UserRoles.Accounts},{UserRoles.Teacher}")]
+    [Authorize(Roles = $"{UserRoles.SuperAdmin},{UserRoles.Accounts}")]
     public async Task<IActionResult> Edit(int id, StudentViewModel model)
     {
         _logger.LogInformation("=== STUDENT EDIT DEBUG START ===");
@@ -390,8 +390,9 @@ public class StudentsController : Controller
         }
     }
 
-    // AJAX: Assign to Batch
+    // AJAX: Assign to Batch - Only SuperAdmin and Accounts
     [HttpPost]
+    [Authorize(Roles = $"{UserRoles.SuperAdmin},{UserRoles.Accounts}")]
     public async Task<IActionResult> AssignToBatch(int studentId, int batchId)
     {
         var success = await _studentService.AssignToBatchAsync(studentId, batchId);
@@ -425,8 +426,9 @@ TempData["SuccessMessage"] = $"Provisioned: {created}, Skipped: {skipped}, Faile
         return RedirectToAction(nameof(Index));
     }
 
-    // AJAX: Remove from Batch
+    // AJAX: Remove from Batch - Only SuperAdmin and Accounts
     [HttpPost]
+    [Authorize(Roles = $"{UserRoles.SuperAdmin},{UserRoles.Accounts}")]
     public async Task<IActionResult> RemoveFromBatch(int studentId)
     {
         var success = await _studentService.RemoveFromBatchAsync(studentId);

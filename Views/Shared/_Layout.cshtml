@@ -1,4 +1,4 @@
-﻿@using StudentManagementSystem.Constants
+@using StudentManagementSystem.Constants
 @inject Microsoft.AspNetCore.Identity.SignInManager<StudentManagementSystem.Models.Entities.ApplicationUser> SignInManager
 @inject Microsoft.AspNetCore.Identity.UserManager<StudentManagementSystem.Models.Entities.ApplicationUser> UserManager
 <!DOCTYPE html>
@@ -105,8 +105,8 @@
                     </li>
                 }
 
-                @* Fee Management - SuperAdmin, Accounts Only *@
-                @if (User.IsInRole(UserRoles.SuperAdmin) || User.IsInRole(UserRoles.Accounts))
+                @* Fee Management - SuperAdmin, Admin, Accounts *@
+                @if (User.IsInRole(UserRoles.SuperAdmin) || User.IsInRole(UserRoles.Admin) || User.IsInRole(UserRoles.Accounts))
                 {
                     <li class="sidebar-dropdown">
                         <a href="#" class="sidebar-dropdown-toggle">
@@ -115,6 +115,7 @@
                         </a>
                         <ul class="sidebar-submenu">
                             <li><a asp-controller="FeeManagement" asp-action="Index"><i class="fas fa-list"></i> All Students</a></li>
+                            <li><a asp-controller="FeeManagement" asp-action="CertificationFees"><i class="fas fa-certificate"></i> Certification Fees</a></li>
                             <li><a asp-controller="FeeManagement" asp-action="Reports"><i class="fas fa-chart-bar"></i> Fee Reports</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a asp-controller="FeeManagement" asp-action="Index" asp-route-statusFilter="unpaid"><i class="fas fa-exclamation-circle"></i> Unpaid</a></li>
